@@ -1,15 +1,9 @@
-const { supabaseUrl, supabaseAnonKey } = window.__NT_CONFIG__ || {};
-if (!supabaseUrl || !supabaseAnonKey || /REEMPLAZA/i.test(supabaseAnonKey)) {
-  alert("Config inválida: falta ANON KEY real en window.__NT_CONFIG__");
-  throw new Error("Missing Supabase anon key");
-}
-
-
 // Supabase client + servicios (Auth + CRUD contactos)
 (() => {
   const { supabaseUrl, supabaseAnonKey } = window.__NT_CONFIG__ || {};
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.error("Falta supabase config"); return;
+  if (!supabaseUrl || !supabaseAnonKey || /REEMPLAZA/i.test(String(supabaseAnonKey))) {
+    alert("Config inválida: falta ANON KEY real en window.__NT_CONFIG__");
+    console.error("Falta supabase config/anon key");
   }
 
   const sb = window.supabase.createClient(supabaseUrl, supabaseAnonKey, {
@@ -41,9 +35,8 @@ if (!supabaseUrl || !supabaseAnonKey || /REEMPLAZA/i.test(supabaseAnonKey)) {
   }
 
   async function upsertContact(payload) {
-    // Si viene id -> update; si no -> insert (requiere default gen_random_uuid() en DB)
     const clean = { ...payload };
-    if (!clean.id) delete clean.id;
+    if (!clean.id) delete clean.id; // insert -> usa default gen_random_uuid()
     const { data, error } = await sb.from(CONTACTS).upsert(clean).select().single();
     if (error) throw error;
     return data;
