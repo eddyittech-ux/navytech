@@ -1,364 +1,213 @@
-<!doctype html>
-<html lang="es">
+<!DOCTYPE html>
+<html lang="es" class="h-full">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Navytech — Contacts (Supabase + Auth)</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NavyTech</title>
 
-<!-- Tailwind (CDN) -->
-<script src="https://cdn.tailwindcss.com"></script>
-<script>
-tailwind.config = {
-  theme: { extend: {
-    colors: {
-      bg:'#f5f7fb',
-      panel:'#ffffff',
-      border:'#e5e7eb',
-      gold:'#c9a227',
-      dani:'#0a3a64',   /* azul oscuro */
-      eddy:'#28326a',   /* índigo oscuro */
-    },
-    boxShadow:{ glass:'0 8px 30px rgba(0,0,0,.08)' }
-  } }
-}
-</script>
-<style>
-  body{ background:#f5f7fb; color:#0f172a; }
-  .glass{ background:rgba(255,255,255,.9); border:1px solid #e5e7eb; border-radius:16px; box-shadow:0 8px 30px rgba(0,0,0,.08); }
-  .chip{ border:1px solid #e5e7eb; border-radius:10px; padding:10px 12px; background:#fff }
-  .chip-sm{ border:1px solid #e5e7eb; border-radius:10px; padding:6px 10px; background:#fff }
-  .badge{ border:1px solid #e5e7eb; background:#f8fafc; border-radius:999px; padding:2px 8px; font-size:11px }
-  .dot{width:10px;height:10px;border-radius:999px;display:inline-block;margin-right:6px}
-  .dot-sm{width:10px;height:10px;border-radius:999px;display:inline-block;margin-right:6px}
-  .modal{ position: fixed; inset:0; display:none; align-items:center; justify-content:center; padding:16px; background:rgba(0,0,0,.35); }
-  .modal.open{ display:flex; }
-  /* Modo dark simple */
-  .dark body{ background:#0b1020; color:#e8eaf2; }
-  .dark .glass{ background:rgba(13,20,34,.7); border-color:#1c2336; }
-  .dark .chip,.dark .chip-sm{ background:#111827; border-color:#1f2937; color:#e8eaf2; }
-  .dark .badge{ background:#0f172a; border-color:#1f2937; }
-</style>
-
-<!-- Supabase JS v2 -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Tokens base + Glass Studio
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { gold: '#C7A740' },
+            eddy: { indigo: '#3F3D8F' },
+            dani: { navy: '#163054' }
+          },
+          boxShadow: {
+            'glass': '0 8px 32px rgba(0,0,0,0.25)',
+            'glass-sm': '0 4px 16px rgba(0,0,0,0.18)'
+          },
+          backdropBlur: { xs: '2px' }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Helpers mínimos encima de Tailwind */
+    .gs-card {
+      @apply rounded-2xl shadow-glass bg-white/10 dark:bg-white/5 backdrop-blur-md border border-white/20 dark:border-white/10;
+    }
+    .gs-btn {
+      @apply rounded-xl px-4 py-2 font-medium shadow-glass-sm;
+    }
+    .gs-input {
+      @apply w-full rounded-xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-white/10 backdrop-blur px-3 py-2 outline-none focus:ring-2 focus:ring-brand-gold;
+    }
+    .gs-label {@apply text-sm opacity-80;}
+    .gs-chip {@apply text-xs px-2 py-1 rounded-full border border-white/30 bg-white/10;}
+    .gs-icon { width: 20px; height: 20px; }
+    .hidden-vis { display: none; } /* toggle helpers */
+  </style>
 </head>
-<body class="min-h-screen">
-<header class="sticky top-0 z-10 backdrop-blur bg-white/70 dark:bg-black/30 border-b border-border">
-  <div class="px-4 py-3 flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <h1 class="text-base font-semibold">Navytech <span class="text-gold">— Contacts</span></h1>
-      <span id="env" class="text-xs text-gray-500"></span>
-    </div>
-    <div class="flex items-center gap-2">
-      <!-- User/email (visible sólo autenticado) -->
-      <span id="who" class="text-xs text-gray-600 hidden"></span>
+<body class="h-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-950 text-slate-900 dark:text-slate-100">
 
-      <!-- Dark/Light -->
-      <button id="btnTheme" class="chip-sm" type="button" title="Tema">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3a9 9 0 0 0 0 18 9 9 0 1 1 0-18z" stroke="currentColor" stroke-width="2"/></svg>
-      </button>
-
-      <!-- Reload (sólo autenticado) -->
-      <button id="btnReload" class="chip-sm hidden" type="button" title="Recargar">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 12a9 9 0 1 0 3-6.7" stroke="currentColor" stroke-width="2"/><path d="M3 4v4h4" stroke="currentColor" stroke-width="2"/></svg>
-      </button>
-
-      <!-- Add (sólo autenticado) -->
-      <button id="btnAdd" class="chip-sm bg-gold text-black hidden" type="button" title="Agregar">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      </button>
-
-      <!-- Logout (sólo autenticado) -->
-      <button id="btnLogout" class="chip-sm hidden" type="button" title="Salir">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M10 17l5-5-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M15 12H3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M21 3v18" stroke="currentColor" stroke-width="2"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<main class="max-w-5xl mx-auto p-4">
-  <!-- LOGIN CARD -->
-  <section id="authCard" class="glass p-4 max-w-lg mx-auto mt-8">
-    <h2 class="text-lg font-semibold mb-2">Acceder</h2>
-    <p class="text-sm text-gray-600 mb-3">Ingresa tu correo para recibir un enlace de acceso.</p>
-    <div class="flex gap-2">
-      <input id="inpEmail" type="email" class="chip w-full" placeholder="tu@correo.com" />
-      <button id="btnSendMagic" class="chip-sm" type="button">Enviar enlace</button>
-    </div>
-    <p id="authMsg" class="text-xs text-gray-600 mt-2"></p>
-  </section>
-
-  <!-- APP (sólo visible autenticado) -->
-  <section id="app" class="glass p-4 hidden">
-    <h2 class="text-lg font-semibold mb-3">Contactos</h2>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div>
-        <div class="text-sm text-gray-500 mb-2">Todos</div>
-        <div id="listAll" class="grid gap-2"></div>
+  <!-- Header -->
+  <header class="sticky top-0 z-40 backdrop-blur bg-white/40 dark:bg-slate-900/40 border-b border-white/20 dark:border-white/10">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
+      <div class="flex items-center gap-2">
+        <!-- Logo simple -->
+        <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-dani-navy to-eddy-indigo"></div>
+        <h1 class="text-lg font-semibold tracking-tight">NavyTech</h1>
       </div>
-      <div>
-        <div class="text-sm text-gray-500 mb-2">Bloqueados</div>
-        <div id="listBlocked" class="grid gap-2"></div>
+
+      <!-- Nav -->
+      <nav class="ml-6 flex gap-1 text-sm">
+        <a href="#/resumen" class="px-3 py-2 rounded-lg hover:bg-white/40 dark:hover:bg-white/10">Resumen</a>
+        <a href="#/acuerdos" class="px-3 py-2 rounded-lg hover:bg-white/40 dark:hover:bg-white/10">Acuerdos</a>
+        <a href="#/metas" class="px-3 py-2 rounded-lg hover:bg-white/40 dark:hover:bg-white/10">Metas</a>
+        <a href="#/luces" class="px-3 py-2 rounded-lg hover:bg-white/40 dark:hover:bg-white/10">Luces</a>
+        <a href="#/juegos" class="px-3 py-2 rounded-lg hover:bg-white/40 dark:hover:bg-white/10">Juegos</a>
+        <a href="#/ajustes" class="px-3 py-2 rounded-lg hover:bg-white/40 dark:hover:bg-white/10">Ajustes</a>
+      </nav>
+
+      <div class="ml-auto flex items-center gap-2">
+        <!-- Theme switch -->
+        <button id="themeToggle" class="gs-btn bg-white/40 dark:bg-white/10 border border-white/30" title="Tema">
+          <span id="themeLabel" class="text-xs">Dark</span>
+        </button>
+
+        <!-- User chip + logout -->
+        <div id="userChip" class="flex items-center gap-2">
+          <span id="userEmail" class="text-xs opacity-80"></span>
+          <button id="logoutBtn" class="gs-btn bg-white/40 dark:bg-white/10 border border-white/30">Salir</button>
+        </div>
       </div>
     </div>
-  </section>
-</main>
+  </header>
 
-<!-- Modal -->
-<div id="modal" class="modal">
-  <div class="glass p-4 w-full max-w-xl">
-    <div class="flex items-center justify-between mb-2">
-      <h3 class="text-lg font-semibold">Contacto</h3>
-      <button id="btnClose" class="chip-sm" type="button">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      </button>
-    </div>
-    <input id="f_id" type="hidden" />
-    <div class="grid md:grid-cols-2 gap-2">
-      <input id="f_name" class="chip" placeholder="Nombre/alias" />
-      <select id="f_owner" class="chip">
-        <option>Eddy</option><option>Dani</option>
-      </select>
-      <select id="f_category" class="chip">
-        <option>Rojo</option><option>Ámbar</option><option>Verde</option><option>Azul</option>
-      </select>
-      <select id="f_status" class="chip">
-        <option>Bloqueado</option><option>Silenciado</option><option>Archivado</option>
-        <option>Eliminado</option><option>Inaccesible</option><option>Conservado</option>
-      </select>
-      <select id="f_action" class="chip">
-        <option>Eliminar contacto</option>
-        <option>No responder mensajes</option>
-        <option>Silenciar / Archivar conversación</option>
-        <option>Responder & Bloquear</option>
-        <option>Responder & Archivar / Eliminar</option>
-        <option>Mantener solo logística y temas no sensibles</option>
-        <option>Bloquear</option>
-      </select>
-      <textarea id="f_notes" class="chip" placeholder="Notas"></textarea>
-    </div>
-    <div class="mt-3 flex items-center justify-between">
-      <div class="flex gap-2">
-        <button id="btnSave" class="chip-sm" type="button">Guardar</button>
-        <button id="btnCancel" class="chip-sm" type="button">Cancelar</button>
+  <!-- Main -->
+  <main class="max-w-5xl mx-auto px-4 py-6">
+    <!-- Auth card -->
+    <section id="authCard" class="gs-card p-6 max-w-md mx-auto">
+      <h2 class="text-xl font-semibold mb-4">Iniciar sesión</h2>
+      <form id="loginForm" class="space-y-3">
+        <div>
+          <label class="gs-label">Email</label>
+          <input id="emailInput" type="email" class="gs-input" placeholder="tu@email.com" required>
+        </div>
+        <div>
+          <label class="gs-label">Password</label>
+          <input id="passwordInput" type="password" class="gs-input" placeholder="••••••••" required>
+        </div>
+        <button class="gs-btn bg-brand-gold/90 hover:bg-brand-gold text-slate-900">Entrar</button>
+      </form>
+      <p class="text-xs opacity-70 mt-2">Solo usuarios permitidos (Eddy y Dani).</p>
+    </section>
+
+    <!-- App views -->
+    <section id="appViews" class="space-y-6 hidden-vis">
+      <!-- Resumen -->
+      <div id="view-resumen" class="gs-card p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold">Resumen</h2>
+          <span class="text-xs opacity-70">v0.1</span>
+        </div>
+        <div id="resumeStats" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <!-- Cards de estadísticas se inyectan desde UI -->
+        </div>
       </div>
-      <button id="btnDelete" class="chip-sm" type="button">Eliminar</button>
-    </div>
-  </div>
-</div>
 
-<script>
-/* ====== SUPABASE INIT ====== */
-const SUPABASE_URL = "https://zhavnscqhsedrvokeocb.supabase.co";
-const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpoYXZuc2NxaHNlZHJ2b2tlb2NiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0ODQ1MDcsImV4cCI6MjA3NDA2MDUwN30.Lace39ORNPoDb5iGz8_hlRTRhH3I1JhvD5sPKwzOiys";
-const { createClient } = supabase;
-const db = createClient(SUPABASE_URL, SUPABASE_ANON);
-
-/* ====== UI refs ====== */
-const authCard   = document.getElementById('authCard');
-const appSec     = document.getElementById('app');
-const authMsg    = document.getElementById('authMsg');
-const inpEmail   = document.getElementById('inpEmail');
-const who        = document.getElementById('who');
-const btnSend    = document.getElementById('btnSendMagic');
-const btnLogout  = document.getElementById('btnLogout');
-
-const listAll    = document.getElementById('listAll');
-const listBlocked= document.getElementById('listBlocked');
-const modal      = document.getElementById('modal');
-
-document.getElementById('env').textContent = "DB: zhavnscqhsedrvokeocb.supabase.co";
-
-/* ====== THEME ====== */
-document.getElementById('btnTheme').addEventListener('click', ()=>{
-  document.documentElement.classList.toggle('dark');
-});
-
-/* ====== AUTH FLOW ====== */
-function showAuthedUI(email){
-  authCard.classList.add('hidden');
-  appSec.classList.remove('hidden');
-  who.classList.remove('hidden');
-  who.textContent = email;
-  document.getElementById('btnReload').classList.remove('hidden');
-  document.getElementById('btnAdd').classList.remove('hidden');
-  document.getElementById('btnLogout').classList.remove('hidden');
-}
-function showAnonUI(){
-  authCard.classList.remove('hidden');
-  appSec.classList.add('hidden');
-  who.classList.add('hidden');
-  document.getElementById('btnReload').classList.add('hidden');
-  document.getElementById('btnAdd').classList.add('hidden');
-  document.getElementById('btnLogout').classList.add('hidden');
-}
-
-btnSend.addEventListener('click', async ()=>{
-  const email = (inpEmail.value || '').trim();
-  if(!email){ authMsg.textContent = 'Escribe tu correo.'; return; }
-  authMsg.textContent = 'Enviando enlace...';
-  const { error } = await db.auth.signInWithOtp({
-    email,
-    options: { emailRedirectTo: window.location.origin + window.location.pathname }
-  });
-  if(error){ authMsg.textContent = 'Error: '+error.message; return; }
-  authMsg.textContent = 'Revisa tu correo y abre el enlace para entrar.';
-});
-
-btnLogout.addEventListener('click', async ()=>{
-  await db.auth.signOut();
-  showAnonUI();
-});
-
-/* Al cargar página, verifica si ya hay sesión (persistida por Supabase) */
-(async ()=>{
-  const { data: { session } } = await db.auth.getSession();
-  if(session && session.user){
-    showAuthedUI(session.user.email || '');
-    await loadContacts();
-  }else{
-    showAnonUI();
-  }
-})();
-
-/* Escucha cambios de auth (por ejemplo, al volver del magic link) */
-db.auth.onAuthStateChange(async (evt, sess)=>{
-  if(sess && sess.user){
-    showAuthedUI(sess.user.email || '');
-    await loadContacts();
-  }else{
-    showAnonUI();
-  }
-});
-
-/* ====== CONTACTS ====== */
-function colorForCategory(cat){
-  if(cat==='Rojo') return '#dc2626';
-  if(cat==='Ámbar') return '#f59e0b';
-  if(cat==='Verde') return '#16a34a';
-  if(cat==='Azul') return '#2563eb';
-  return '#6b7280';
-}
-function dotHTML(cat){ return `<span class="dot-sm" style="background:${colorForCategory(cat)}"></span>`; }
-
-function card(c){
-  return `
-  <div class="border border-border rounded p-3 flex items-start justify-between gap-3">
-    <div class="min-w-0">
-      <div class="font-semibold truncate">${dotHTML(c.category)}${c.name||'(sin nombre)'} 
-        <span class="badge ${c.owner==='Eddy'?'border-eddy text-eddy':'border-dani text-dani'}">${c.owner||''}</span>
+      <!-- Contactos (dentro de Ajustes fase1) -->
+      <div id="view-ajustes" class="gs-card p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold">Ajustes · Contactos</h2>
+          <div class="flex items-center gap-2">
+            <select id="filterStatus" class="gs-input !w-auto text-sm">
+              <option value="">Todos</option>
+              <option>Bloqueado</option>
+              <option>Silenciado</option>
+              <option>Archivado</option>
+              <option>Eliminado</option>
+              <option>Inaccesible</option>
+              <option>Conservado</option>
+            </select>
+            <button id="addContactFab" class="gs-btn bg-white/40 dark:bg-white/10 border border-white/30">+ Agregar</button>
+          </div>
+        </div>
+        <div id="contactsList" class="grid gap-3">
+          <!-- Items de contactos -->
+        </div>
       </div>
-      <div class="mt-1 text-xs text-gray-500 flex flex-wrap gap-2">
-        <span class="badge">${c.category||''}</span>
-        <span class="badge">${c.status||''}</span>
-        ${c.action_plan?`<span class="badge">${c.action_plan}</span>`:''}
+
+      <!-- Placeholders de módulos (para no romper router) -->
+      <div id="view-acuerdos" class="gs-card p-5 hidden-vis"><h2 class="text-lg font-semibold mb-2">Acuerdos</h2><p class="opacity-70 text-sm">Próxima fase.</p></div>
+      <div id="view-metas" class="gs-card p-5 hidden-vis"><h2 class="text-lg font-semibold mb-2">Metas</h2><p class="opacity-70 text-sm">Próxima fase.</p></div>
+      <div id="view-luces" class="gs-card p-5 hidden-vis"><h2 class="text-lg font-semibold mb-2">Luces</h2><p class="opacity-70 text-sm">Próxima fase.</p></div>
+      <div id="view-juegos" class="gs-card p-5 hidden-vis"><h2 class="text-lg font-semibold mb-2">Juegos</h2><p class="opacity-70 text-sm">Próxima fase.</p></div>
+    </section>
+  </main>
+
+  <!-- Modal Contacto -->
+  <dialog id="contactModal" class="rounded-2xl w-full max-w-lg p-0 backdrop:bg-black/50">
+    <form id="contactForm" method="dialog" class="gs-card p-5">
+      <div class="flex items-center justify-between mb-3">
+        <h3 id="modalTitle" class="text-lg font-semibold">Nuevo contacto</h3>
+        <button type="button" id="closeModal" class="opacity-70 hover:opacity-100">✕</button>
       </div>
-      ${c.notes?`<div class="text-xs mt-1 text-gray-700">${c.notes}</div>`:''}
-    </div>
-    <div class="shrink-0 flex gap-2">
-      <button class="chip-sm" title="Editar" onclick="editContact('${c.id}')">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 20h4l10-10-4-4L4 16v4z" stroke="currentColor" stroke-width="2"/></svg>
-      </button>
-      <button class="chip-sm" title="Eliminar" onclick="deleteContact('${c.id}')">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7v12m6-12v12M6 7l1-3h10l1 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      </button>
-    </div>
-  </div>`;
-}
 
-async function loadContacts(){
-  const { data, error } = await db.from('contacts').select('*').order('updated_at', { ascending:false });
-  if(error){
-    listAll.innerHTML = `<div class="text-sm text-red-600">Error: ${error.message}</div>`;
-    listBlocked.innerHTML = '';
-    return;
-  }
-  const items = data || [];
-  listAll.innerHTML = items.map(card).join('') || '<div class="text-sm text-gray-500">Sin contactos.</div>';
-  const blocked = items.filter(x=> String(x.status||'') === 'Bloqueado');
-  listBlocked.innerHTML = blocked.map(card).join('') || '<div class="text-sm text-gray-500">Sin bloqueados.</div>';
-}
+      <input type="hidden" id="contactId">
 
-/* ====== MODAL & CRUD ====== */
-const btnReload = document.getElementById('btnReload');
-const btnAdd    = document.getElementById('btnAdd');
-const btnClose  = document.getElementById('btnClose');
-const btnCancel = document.getElementById('btnCancel');
-const btnSave   = document.getElementById('btnSave');
-const btnDelete = document.getElementById('btnDelete');
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label class="gs-label">Owner</label>
+          <select id="ownerInput" class="gs-input" required>
+            <option value="Eddy">Eddy</option>
+            <option value="Dani">Dani</option>
+          </select>
+        </div>
+        <div class="sm:col-span-2">
+          <label class="gs-label">Nombre</label>
+          <input id="nameInput" class="gs-input" required>
+        </div>
+        <div>
+          <label class="gs-label">Categoría</label>
+          <select id="categoryInput" class="gs-input">
+            <option>Rojo</option><option>Ámbar</option><option>Verde</option><option>Azul</option>
+          </select>
+        </div>
+        <div>
+          <label class="gs-label">Estado</label>
+          <select id="statusInput" class="gs-input">
+            <option></option>
+            <option>Bloqueado</option><option>Silenciado</option><option>Archivado</option>
+            <option>Eliminado</option><option>Inaccesible</option><option>Conservado</option>
+          </select>
+        </div>
+        <div class="sm:col-span-2">
+          <label class="gs-label">Action plan</label>
+          <input id="actionPlanInput" class="gs-input" placeholder="(catálogo, fase 2)">
+        </div>
+        <div class="sm:col-span-2">
+          <label class="gs-label">Notas</label>
+          <textarea id="notesInput" class="gs-input" rows="3"></textarea>
+        </div>
+      </div>
 
-btnReload.addEventListener('click', loadContacts);
-btnAdd.addEventListener('click', ()=>openModal(null));
-btnClose.addEventListener('click', closeModal);
-btnCancel.addEventListener('click', closeModal);
-btnSave.addEventListener('click', saveFromModal);
-btnDelete.addEventListener('click', async ()=>{
-  const id = document.getElementById('f_id').value.trim();
-  if(!id) return closeModal();
-  await deleteContact(id);
-  closeModal();
-});
+      <div class="mt-4 flex justify-end gap-2">
+        <button type="button" id="deleteBtn" class="gs-btn border border-white/30 bg-white/20 text-red-300 hidden-vis">Eliminar</button>
+        <button class="gs-btn bg-brand-gold/90 hover:bg-brand-gold text-slate-900">Guardar</button>
+      </div>
+    </form>
+  </dialog>
 
-function openModal(c){
-  modal.classList.add('open');
-  if(!c){
-    document.getElementById('f_id').value = '';
-    document.getElementById('f_name').value = '';
-    document.getElementById('f_owner').value = 'Eddy';
-    document.getElementById('f_category').value = 'Azul';
-    document.getElementById('f_status').value = 'Conservado';
-    document.getElementById('f_action').value = 'Mantener solo logística y temas no sensibles';
-    document.getElementById('f_notes').value = '';
-    return;
-  }
-  document.getElementById('f_id').value = c.id || '';
-  document.getElementById('f_name').value = c.name || '';
-  document.getElementById('f_owner').value = c.owner || 'Eddy';
-  document.getElementById('f_category').value = c.category || 'Azul';
-  document.getElementById('f_status').value = c.status || 'Conservado';
-  document.getElementById('f_action').value = c.action_plan || '';
-  document.getElementById('f_notes').value = c.notes || '';
-}
-function closeModal(){ modal.classList.remove('open'); }
+  <!-- Toasts -->
+  <div id="toastHost" class="fixed bottom-4 right-4 space-y-2"></div>
 
-async function saveFromModal(){
-  const id   = document.getElementById('f_id').value.trim();
-  const row = {
-    owner:       document.getElementById('f_owner').value,
-    name:        document.getElementById('f_name').value.trim(),
-    category:    document.getElementById('f_category').value,
-    status:      document.getElementById('f_status').value,
-    action_plan: document.getElementById('f_action').value,
-    notes:       document.getElementById('f_notes').value
-  };
+  <!-- Config -->
+  <script>
+    window.__NT_CONFIG__ = {
+      supabaseUrl: "https://zhavnscqhsedrvokeocb.supabase.co",
+      supabaseAnonKey: "REEMPLAZA_CON_TU_ANON_KEY"
+    };
+  </script>
 
-  let res;
-  if(!id){
-    res = await db.from('contacts').insert(row).select().single();
-  }else{
-    res = await db.from('contacts').update(row).eq('id', id).select().single();
-  }
-  if(res.error){ alert('Error: '+res.error.message); return; }
-  closeModal();
-  loadContacts();
-}
-
-async function editContact(id){
-  const { data, error } = await db.from('contacts').select('*').eq('id', id).single();
-  if(error){ alert('Error: '+error.message); return; }
-  openModal(data);
-}
-async function deleteContact(id){
-  if(!confirm('¿Eliminar este contacto?')) return;
-  const { error } = await db.from('contacts').delete().eq('id', id);
-  if(error){ alert('Error: '+error.message); return; }
-  loadContacts();
-}
-
-/* Exponer para los botones inline */
-window.editContact = editContact;
-window.deleteContact = deleteContact;
-</script>
+  <!-- App scripts -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2.47.10/dist/umd/supabase.js"></script>
+  <script src="./app.js"></script>
+  <script src="./ui.js"></script>
 </body>
 </html>
