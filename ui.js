@@ -94,18 +94,26 @@
   }
 
   // ===== Login/Logout handlers =====
-  loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = qs('#emailInput').value.trim();
-    const password = qs('#passwordInput').value;
-    try {
-      await window.NT.auth.signIn(email, password);
-      toast('Sesión iniciada', 'success');
-    } catch (err) {
-      console.error(err);
-      toast('Error de login (usuario no permitido o credenciales inválidas)', 'error');
-    }
-  });
+loginForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.querySelector('#emailInput').value.trim();
+  const password = document.querySelector('#passwordInput').value;
+
+  const btn = loginForm.querySelector('button[type="submit"], button:not([type])') || loginForm.querySelector('button');
+  if (btn) { btn.disabled = true; btn.style.opacity = .6; btn.textContent = 'Entrando…'; }
+
+  try {
+    await window.NT.auth.signIn(email, password);
+    toast('Sesión iniciada', 'success');
+  } catch (err) {
+    console.error(err);
+    // errores típicos: Invalid login credentials, Invalid API key, Failed to fetch
+    toast(`Login failed: ${err.message || 'credenciales inválidas'}`, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.style.opacity = 1; btn.textContent = 'Entrar'; }
+  }
+});
+
 
   logoutBtn.addEventListener('click', async () => {
     await window.NT.auth.signOut();
