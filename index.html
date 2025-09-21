@@ -27,21 +27,51 @@
     }
   </script>
   <style>
-    /* Helpers mínimos encima de Tailwind */
-    .gs-card {
-      @apply rounded-2xl shadow-glass bg-white/10 dark:bg-white/5 backdrop-blur-md border border-white/20 dark:border-white/10;
-    }
-    .gs-btn {
-      @apply rounded-xl px-4 py-2 font-medium shadow-glass-sm;
-    }
-    .gs-input {
-      @apply w-full rounded-xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-white/10 backdrop-blur px-3 py-2 outline-none focus:ring-2 focus:ring-brand-gold;
-    }
-    .gs-label {@apply text-sm opacity-80;}
-    .gs-chip {@apply text-xs px-2 py-1 rounded-full border border-white/30 bg-white/10;}
-    .gs-icon { width: 20px; height: 20px; }
-    .hidden-vis { display: none; } /* toggle helpers */
-  </style>
+  :root{
+    --card-bg-light: rgba(255,255,255,0.10);
+    --card-bg-dark:  rgba(255,255,255,0.05);
+    --border-light:  rgba(255,255,255,0.20);
+    --border-dark:   rgba(255,255,255,0.10);
+    --input-bg-light:rgba(255,255,255,0.60);
+    --input-bg-dark: rgba(255,255,255,0.10);
+  }
+  .gs-card{
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.25);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--border-light);
+    background: var(--card-bg-light);
+  }
+  .dark .gs-card{
+    border-color: var(--border-dark);
+    background: var(--card-bg-dark);
+  }
+  .gs-btn{
+    border-radius: 12px;
+    padding: 8px 14px;
+    font-weight: 500;
+    box-shadow: 0 4px 16px rgba(0,0,0,.18);
+    border: 1px solid rgba(255,255,255,.30);
+    background: rgba(255,255,255,.40);
+  }
+  .dark .gs-btn{ background: rgba(255,255,255,.10); }
+  .gs-input{
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,.30);
+    background: var(--input-bg-light);
+    padding: 10px 12px;
+    outline: none;
+  }
+  .dark .gs-input{ background: var(--input-bg-dark); border-color: rgba(255,255,255,.10); }
+  .gs-input:focus{ box-shadow: 0 0 0 2px #C7A740AA; }
+  .gs-label{ font-size: 0.875rem; opacity:.8; display:block; margin-bottom:4px; }
+  .gs-chip{ font-size: .75rem; padding: 4px 8px; border-radius: 999px; border:1px solid rgba(255,255,255,.30); background: rgba(255,255,255,.10); }
+  .gs-icon{ width:20px; height:20px; }
+  .hidden-vis{ display:none; }
+</style>
+
 </head>
 <body class="h-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-950 text-slate-900 dark:text-slate-100">
 
@@ -50,7 +80,8 @@
     <div class="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
       <div class="flex items-center gap-2">
         <!-- Logo simple -->
-        <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-dani-navy to-eddy-indigo"></div>
+        <div class="w-8 h-8 rounded-xl"
+     style="background: linear-gradient(135deg,#163054 0%,#3F3D8F 70%);"></div>
         <h1 class="text-lg font-semibold tracking-tight">NavyTech</h1>
       </div>
 
@@ -201,7 +232,7 @@
   <script>
     window.__NT_CONFIG__ = {
       supabaseUrl: "https://zhavnscqhsedrvokeocb.supabase.co",
-      supabaseAnonKey: "REEMPLAZA_CON_TU_ANON_KEY"
+      supabaseAnonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpoYXZuc2NxaHNlZHJ2b2tlb2NiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0ODQ1MDcsImV4cCI6MjA3NDA2MDUwN30.Lace39ORNPoDb5iGz8_hlRTRhH3I1JhvD5sPKwzOiys"
     };
   </script>
 
@@ -211,3 +242,4 @@
   <script src="./ui.js"></script>
 </body>
 </html>
+
