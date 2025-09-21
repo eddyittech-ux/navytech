@@ -15,7 +15,6 @@
     ajustes: qs('#view-ajustes'),
   };
 
-  // Header bits
   const mainNav     = qs('#mainNav');
   const authActions = qs('#authActions');
 
@@ -38,8 +37,7 @@
     applyTheme(saved);
   }
   onReady(() => {
-    const themeToggle = qs('#themeToggle');
-    themeToggle?.addEventListener('click', () => {
+    qs('#themeToggle')?.addEventListener('click', () => {
       const cur = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
       applyTheme(cur==='dark' ? 'light' : 'dark');
     });
@@ -97,10 +95,11 @@
     }
   }
 
-  // ===== Login/Logout handlers =====
+  // ===== Login/Logout =====
   onReady(() => {
     const loginForm = qs('#loginForm');
     const loginBtn  = qs('#loginBtn');
+
     loginForm?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = qs('#emailInput').value.trim();
@@ -113,6 +112,9 @@
       try {
         await window.NT.auth.signIn(email, password);
         toast('Sesión iniciada', 'success');
+        // refresco inmediato sin esperar onAuth
+        const user = await window.NT.auth.getUser();
+        refreshAuthUI(user);
       } catch (err) {
         console.error(err);
         toast(`Login failed: ${err.message || 'credenciales inválidas'}`, 'error');
@@ -126,28 +128,26 @@
       toast('Sesión cerrada', 'success');
     });
 
-    // Suscripción a cambios de auth
+    // Suscripción a cambios de auth: recibimos user directo desde app.js
     if (window.NT?.auth?.onAuth) {
-      window.NT.auth.onAuth(async (_event, _session) => {
-        // fallback, pero además:
-        refreshAuthUI((await window.NT.auth.getUser()));
+      window.NT.auth.onAuth((user) => {
+        refreshAuthUI(user);
       });
     }
   });
 
-  // Init auth UI con sesión existente
+  // Init con sesión previa
   onReady(async () => {
     initTheme();
     if (window.NT?.auth?.getUser) {
       const user = await window.NT.auth.getUser();
       refreshAuthUI(user);
     } else {
-      // si NT aún no existe por un error de config, deja login visible
       refreshAuthUI(null);
     }
   });
 
-  // ===== Resumen (mini métricas Contactos) =====
+  // ===== Resumen =====
   async function renderResumen() {
     const wrap = qs('#resumeStats');
     if (!window.NT?.contacts?.listContacts) {
