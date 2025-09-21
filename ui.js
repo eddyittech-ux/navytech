@@ -1,286 +1,56 @@
-// Estado UI, router por hash, theming (icono), renderizadores y modal (CRUD)
+// Supabase client + servicios (Auth + CRUD contactos)
 (() => {
-  // ===== Shortcuts =====
-  const qs  = (sel, el = document) => el.querySelector(sel);
-  const qsa = (sel, el = document) => [...el.querySelectorAll(sel)];
-  const $$  = (el, show=true) => el.classList.toggle('hidden-vis', !show);
+  const { supabaseUrl, supabaseAnonKey } = window.__NT_CONFIG__ || {};
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error("Falta supabase config"); return;
+  }
 
-  const views = {
-    resumen: qs('#view-resumen'),
-    acuerdos: qs('#view-acuerdos'),
-    metas: qs('#view-metas'),
-    luces: qs('#view-luces'),
-    juegos: qs('#view-juegos'),
-    ajustes: qs('#view-ajustes'),
+  const sb = window.supabase.createClient(supabaseUrl, supabaseAnonKey, {
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+  });
+
+  // ===== Auth =====
+  async function signIn(email, password) {
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    return data.user;
+  }
+  async function signOut() { await sb.auth.signOut(); }
+  function onAuth(cb) { return sb.auth.onAuthStateChange((_e, s) => cb(s?.user || null)); }
+  async function getUser() {
+    const { data: { user } } = await sb.auth.getUser();
+    return user;
+  }
+
+  // ===== Contacts CRUD =====
+  const CONTACTS = 'public.contacts';
+
+  async function listContacts({ status } = {}) {
+    let q = sb.from(CONTACTS).select('*').order('updated_at', { ascending: false });
+    if (status) q = q.eq('status', status);
+    const { data, error } = await q;
+    if (error) throw error;
+    return data;
+  }
+
+  async function upsertContact(payload) {
+    // Si viene id -> update; si no -> insert (requiere default gen_random_uuid() en DB)
+    const clean = { ...payload };
+    if (!clean.id) delete clean.id;
+    const { data, error } = await sb.from(CONTACTS).upsert(clean).select().single();
+    if (error) throw error;
+    return data;
+  }
+
+  async function deleteContact(id) {
+    const { error } = await sb.from(CONTACTS).delete().eq('id', id);
+    if (error) throw error;
+  }
+
+  // ===== Export API to window =====
+  window.NT = {
+    sb,
+    auth: { signIn, signOut, onAuth, getUser },
+    contacts: { listContacts, upsertContact, deleteContact }
   };
-
-  // Header / Auth / Controls
-  const authCard = qs('#authCard');
-  const appViews = qs('#appViews');
-  const logoutBtn = qs('#logoutBtn');
-  const loginForm = qs('#loginForm');
-
-  // Nav
-  function highlightActiveNav() {
-    const key = (location.hash || '#/resumen').replace('#/','');
-    qsa('#mainNav .nav-link').forEach(a=>{
-      const href = a.getAttribute('href').replace('#/','');
-      a.classList.toggle('active', href === key);
-    });
-  }
-
-  // Theme (icono sol/luna)
-  const THEME_KEY = 'nt-theme';
-  function setThemeIcon(theme){
-    const icon = document.getElementById('themeIcon');
-    if (!icon) return;
-    icon.innerHTML = theme==='dark'
-      // SOL (indica que puedes pasar a light)
-      ? '<svg class="gs-icon" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="1.6"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>'
-      // LUNA (indica que puedes pasar a dark)
-      : '<svg class="gs-icon" viewBox="0 0 24 24" fill="none"><path d="M20 12.5A8 8 0 1 1 11.5 4a6.5 6.5 0 1 0 8.5 8.5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  }
-  function applyTheme(t){
-    document.documentElement.classList.toggle('dark', t==='dark');
-    localStorage.setItem(THEME_KEY, t);
-    setThemeIcon(t);
-  }
-  function initTheme() {
-    const saved = localStorage.getItem(THEME_KEY) || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    applyTheme(saved);
-  }
-  qs('#themeToggle').addEventListener('click', () => {
-    const cur = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-    applyTheme(cur==='dark' ? 'light' : 'dark');
-  });
-
-  // ===== Toasts =====
-  function toast(msg, type='info') {
-    const host = qs('#toastHost');
-    const el = document.createElement('div');
-    el.className = `gs-card px-4 py-2 text-sm border-l-4 ${type==='error' ? 'border-red-400' : type==='success' ? 'border-emerald-400' : 'border-[#C7A740]'}`;
-    el.textContent = msg;
-    host.appendChild(el);
-    setTimeout(()=> el.remove(), 3000);
-  }
-
-  // ===== Router =====
-  function showView(name) {
-    Object.entries(views).forEach(([key, el]) => $$(el, key===name));
-    // Render específico
-    if (name === 'ajustes') renderContacts();
-    if (name === 'resumen') renderResumen();
-    highlightActiveNav();
-  }
-  function parseRoute() {
-    if (!location.hash) location.hash = '#/resumen';
-    const key = (location.hash || '#/resumen').replace('#/','');
-    if (!views[key]) return showView('resumen');
-    showView(key);
-  }
-  window.addEventListener('hashchange', parseRoute);
-  window.addEventListener('hashchange', highlightActiveNav);
-
-  // ===== Auth UI =====
-  async function refreshAuthUI(user) {
-    if (user) {
-      $$(authCard, false); $$(appViews, true);
-      const tip = document.getElementById('userTooltip'); if (tip) tip.textContent = user.email || '';
-      if (!location.hash) location.hash = '#/resumen';
-      parseRoute();
-    } else {
-      $$(authCard, true); $$(appViews, false);
-      const tip = document.getElementById('userTooltip'); if (tip) tip.textContent = '';
-    }
-  }
-
-  // ===== Login/Logout handlers =====
-  loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = qs('#emailInput').value.trim();
-    const password = qs('#passwordInput').value;
-    const btn = loginForm.querySelector('button[type="submit"]');
-    if (btn) { btn.disabled = true; btn.style.opacity = .6; btn.textContent = 'Entrando…'; }
-    try {
-      await window.NT.auth.signIn(email, password);
-      toast('Sesión iniciada', 'success');
-    } catch (err) {
-      console.error(err);
-      toast(`Login failed: ${err.message || 'credenciales inválidas'}`, 'error');
-    } finally {
-      if (btn) { btn.disabled = false; btn.style.opacity = 1; btn.textContent = 'Entrar'; }
-    }
-  });
-  logoutBtn.addEventListener('click', async () => {
-    await window.NT.auth.signOut();
-    toast('Sesión cerrada', 'success');
-  });
-  window.NT.auth.onAuth(async (user) => refreshAuthUI(user));
-
-  // ===== Resumen (mini métricas Contactos) =====
-  async function renderResumen() {
-    const wrap = qs('#resumeStats');
-    wrap.innerHTML = `<div class="text-sm opacity-70">Cargando...</div>`;
-    try {
-      const all = await window.NT.contacts.listContacts();
-      const total = all.length;
-      const bloqueados = all.filter(x => x.status === 'Bloqueado').length;
-      const conservados = all.filter(x => x.status === 'Conservado').length;
-
-      wrap.innerHTML = `
-        <div class="gs-card p-4">
-          <div class="text-xs opacity-70">Contactos</div>
-          <div class="text-3xl font-bold" style="color:#C7A740">${total}</div>
-          <div class="text-xs opacity-70 mt-1">Totales</div>
-        </div>
-        <div class="gs-card p-4">
-          <div class="text-xs opacity-70">Bloqueados</div>
-          <div class="text-3xl font-bold">${bloqueados}</div>
-          <div class="text-xs opacity-70 mt-1">Estado</div>
-        </div>
-        <div class="gs-card p-4">
-          <div class="text-xs opacity-70">Conservados</div>
-          <div class="text-3xl font-bold">${conservados}</div>
-          <div class="text-xs opacity-70 mt-1">Estado</div>
-        </div>
-      `;
-    } catch (e) {
-      console.error(e);
-      wrap.innerHTML = `<div class="text-sm text-red-300">No se pudieron cargar estadísticas</div>`;
-    }
-  }
-
-  // ===== Contactos (CRUD) =====
-  const filterStatus = qs('#filterStatus');
-  const addFab = qs('#addContactFab');
-  const contactsList = qs('#contactsList');
-
-  const contactModal = qs('#contactModal');
-  const modalTitle = qs('#modalTitle');
-  const deleteBtn = qs('#deleteBtn');
-  const contactForm = qs('#contactForm');
-
-  const idInput = qs('#contactId');
-  const ownerInput = qs('#ownerInput');
-  const nameInput = qs('#nameInput');
-  const categoryInput = qs('#categoryInput');
-  const statusInput = qs('#statusInput');
-  const actionPlanInput = qs('#actionPlanInput');
-  const notesInput = qs('#notesInput');
-
-  filterStatus.addEventListener('change', renderContacts);
-  addFab.addEventListener('click', () => openModal());
-
-  async function renderContacts() {
-    contactsList.innerHTML = `<div class="text-sm opacity-70">Cargando...</div>`;
-    try {
-      const status = filterStatus.value || undefined;
-      const items = await window.NT.contacts.listContacts({ status });
-      if (!items.length) {
-        contactsList.innerHTML = `<div class="text-sm opacity-70">Sin contactos.</div>`;
-        return;
-      }
-      contactsList.innerHTML = items.map(cardContact).join('');
-      // Wire actions
-      qsa('[data-edit]').forEach(btn => btn.addEventListener('click', () => {
-        const id = btn.getAttribute('data-edit');
-        const item = items.find(x => x.id === id);
-        openModal(item);
-      }));
-      qsa('[data-del]').forEach(btn => btn.addEventListener('click', async () => {
-        const id = btn.getAttribute('data-del');
-        if (!confirm('¿Eliminar contacto?')) return;
-        try {
-          await window.NT.contacts.deleteContact(id);
-          toast('Eliminado', 'success');
-          renderContacts();
-          renderResumen();
-        } catch (e) { console.error(e); toast('Error al eliminar', 'error'); }
-      }));
-    } catch (e) {
-      console.error(e);
-      contactsList.innerHTML = `<div class="text-sm text-red-300">Error al cargar</div>`;
-    }
-  }
-
-  function cardContact(c) {
-    const ownerColor = c.owner === 'Dani' ? 'background:linear-gradient(135deg,#163054,#334155)' : 'background:linear-gradient(135deg,#3F3D8F,#334155)';
-    return `
-      <div class="gs-card p-4 flex items-start justify-between">
-        <div class="flex items-start gap-3">
-          <div class="w-9 h-9 rounded-xl" style="${ownerColor}"></div>
-          <div>
-            <div class="font-medium">${escapeHtml(c.name || '—')}</div>
-            <div class="text-xs opacity-70">${escapeHtml(c.owner || '')} · ${escapeHtml(c.category || '')}</div>
-            <div class="mt-2 text-xs opacity-80">${escapeHtml(c.notes || '')}</div>
-          </div>
-        </div>
-        <div class="flex items-center gap-2">
-          ${c.status ? `<span class="gs-chip">${escapeHtml(c.status)}</span>` : ''}
-          <button class="gs-btn text-xs" data-edit="${c.id}">Editar</button>
-          <button class="gs-btn text-xs" data-del="${c.id}">Borrar</button>
-        </div>
-      </div>
-    `;
-  }
-
-  // Modal
-  function openModal(item=null) {
-    modalTitle.textContent = item ? 'Editar contacto' : 'Nuevo contacto';
-    $$(deleteBtn, !!item);
-    idInput.value = item?.id || '';
-    ownerInput.value = item?.owner || 'Eddy';
-    nameInput.value = item?.name || '';
-    categoryInput.value = item?.category || 'Verde';
-    statusInput.value = item?.status || '';
-    actionPlanInput.value = item?.action_plan || '';
-    notesInput.value = item?.notes || '';
-    contactModal.showModal();
-  }
-  qs('#closeModal').addEventListener('click', () => contactModal.close());
-
-  deleteBtn.addEventListener('click', async () => {
-    const id = idInput.value;
-    if (!id) return;
-    if (!confirm('¿Eliminar contacto?')) return;
-    try {
-      await window.NT.contacts.deleteContact(id);
-      contactModal.close();
-      toast('Eliminado', 'success');
-      renderContacts(); renderResumen();
-    } catch (e) { console.error(e); toast('Error al eliminar', 'error'); }
-  });
-
-  contactForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if (!nameInput.value.trim()) { toast('Nombre es obligatorio', 'error'); return; }
-    try {
-      const payload = {
-        id: idInput.value || undefined,
-        owner: ownerInput.value,
-        name: nameInput.value.trim(),
-        category: categoryInput.value || null,
-        status: statusInput.value || null,
-        action_plan: actionPlanInput.value || null,
-        notes: notesInput.value || null
-      };
-      await window.NT.contacts.upsertContact(payload);
-      contactModal.close();
-      toast('Guardado', 'success');
-      renderContacts(); renderResumen();
-    } catch (e) {
-      console.error(e); toast('Error al guardar (RLS o datos inválidos)', 'error');
-    }
-  });
-
-  // Utils
-  function escapeHtml(s='') {
-    return String(s).replace(/[&<>"'`=\/]/g, c => (
-      { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D;' }[c]
-    ));
-  }
-
-  // ===== Init =====
-  initTheme();
-  (async () => { refreshAuthUI(await window.NT.auth.getUser()); })();
 })();
