@@ -1,3 +1,10 @@
+const { supabaseUrl, supabaseAnonKey } = window.__NT_CONFIG__ || {};
+if (!supabaseUrl || !supabaseAnonKey || /REEMPLAZA/i.test(supabaseAnonKey)) {
+  alert("Config inválida: falta ANON KEY real en window.__NT_CONFIG__");
+  throw new Error("Missing Supabase anon key");
+}
+
+
 // Supabase client + servicios (Auth + CRUD contactos)
 (() => {
   const { supabaseUrl, supabaseAnonKey } = window.__NT_CONFIG__ || {};
