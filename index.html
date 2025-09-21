@@ -8,17 +8,15 @@
   <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Tema + estilos “Glass Studio” sin build -->
+  <!-- Estilo “Glass Studio” (sin build) -->
   <style>
     :root{
-      /* Light */
       --bg-grad-1:#f3f6fb; --bg-grad-2:#e9eef7;
       --card-bg: rgba(255,255,255,0.10);
       --border:  rgba(255,255,255,0.22);
       --input-bg:rgba(255,255,255,0.60);
     }
     .dark:root,.dark{
-      /* Dark */
       --bg-grad-1:#0f172a; --bg-grad-2:#0b1220;
       --card-bg: rgba(255,255,255,0.06);
       --border:  rgba(255,255,255,0.10);
@@ -29,49 +27,27 @@
                   radial-gradient(1000px 600px at 90% 10%, var(--bg-grad-2), transparent),
                   linear-gradient(180deg, var(--bg-grad-1), var(--bg-grad-2));
     }
-    .gs-card{
-      border-radius: 16px;
-      box-shadow: 0 8px 32px rgba(0,0,0,.25);
-      -webkit-backdrop-filter: blur(10px);
-      backdrop-filter: blur(10px);
-      border: 1px solid var(--border);
-      background: var(--card-bg);
-    }
-    .gs-btn{
-      border-radius: 12px;
-      padding: 8px 14px;
-      font-weight: 500;
-      box-shadow: 0 4px 16px rgba(0,0,0,.18);
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,.40);
-    }
+    .gs-card{ border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,.25);
+      -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+      border: 1px solid var(--border); background: var(--card-bg); }
+    .gs-btn{ border-radius: 12px; padding: 8px 14px; font-weight: 500;
+      box-shadow: 0 4px 16px rgba(0,0,0,.18); border: 1px solid var(--border);
+      background: rgba(255,255,255,.40); }
     .dark .gs-btn{ background: rgba(255,255,255,.10); }
-    .gs-input{
-      width: 100%; border-radius: 12px; border: 1px solid var(--border);
-      background: var(--input-bg); padding: 10px 12px; outline: none;
-    }
+    .gs-input{ width: 100%; border-radius: 12px; border: 1px solid var(--border);
+      background: var(--input-bg); padding: 10px 12px; outline: none; }
     .gs-input:focus{ box-shadow: 0 0 0 2px #C7A740AA; }
     .gs-label{ font-size: .875rem; opacity:.8; display:block; margin-bottom:4px; }
     .gs-chip{ font-size:.75rem; padding:4px 8px; border-radius:999px; border:1px solid var(--border); background: rgba(255,255,255,.10); }
     .gs-icon{ width:20px; height:20px; }
     .hidden-vis{ display:none; }
 
-    /* Nav activo */
     .nav-link{ color:inherit; }
-    .nav-link.active{
-      background: rgba(255,255,255,.14);
-      border:1px solid var(--border);
-      border-radius: 10px;
-    }
-    /* Tooltip usuario */
-    .tooltip{
-      position:absolute; right:0; top:110%;
-      background: rgba(0,0,0,.72); color:white; font-size:.75rem;
-      padding:6px 8px; border-radius:8px; white-space:nowrap;
-      border:1px solid rgba(255,255,255,.2);
-      box-shadow: 0 8px 24px rgba(0,0,0,.25);
-      pointer-events:none;
-    }
+    .nav-link.active{ background: rgba(255,255,255,.14); border:1px solid var(--border); border-radius: 10px; }
+
+    .tooltip{ position:absolute; right:0; top:110%; background: rgba(0,0,0,.72); color:white;
+      font-size:.75rem; padding:6px 8px; border-radius:8px; white-space:nowrap;
+      border:1px solid rgba(255,255,255,.2); box-shadow: 0 8px 24px rgba(0,0,0,.25); pointer-events:none; }
   </style>
 </head>
 <body class="h-full text-slate-900 dark:text-slate-100">
@@ -86,7 +62,7 @@
         </h1>
       </div>
 
-      <!-- Nav (se oculta sin sesión) -->
+      <!-- Nav (oculto hasta login) -->
       <nav id="mainNav" class="ml-6 flex gap-1 text-sm hidden-vis">
         <a href="#/resumen"  class="px-3 py-2 nav-link">Resumen</a>
         <a href="#/acuerdos" class="px-3 py-2 nav-link">Acuerdos</a>
@@ -96,7 +72,7 @@
         <a href="#/ajustes"  class="px-3 py-2 nav-link">Ajustes</a>
       </nav>
 
-      <!-- Acciones (se ocultan sin sesión) -->
+      <!-- Acciones (ocultas hasta login) -->
       <div id="authActions" class="ml-auto flex items-center gap-2 hidden-vis">
         <button id="themeToggle" class="gs-btn flex items-center justify-center" title="Cambiar tema" aria-label="Cambiar tema">
           <span id="themeIcon" class="inline-block" aria-hidden="true">
@@ -249,11 +225,11 @@
   <!-- Toasts -->
   <div id="toastHost" class="fixed bottom-4 right-4 space-y-2"></div>
 
-  <!-- Config -->
+  <!-- Config (PON AQUÍ TU ANON KEY REAL) -->
   <script>
     window.__NT_CONFIG__ = {
       supabaseUrl: "https://zhavnscqhsedrvokeocb.supabase.co",
-      supabaseAnonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpoYXZuc2NxaHNlZHJ2b2tlb2NiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0ODQ1MDcsImV4cCI6MjA3NDA2MDUwN30.Lace39ORNPoDb5iGz8_hlRTRhH3I1JhvD5sPKwzOiys" /* pega tu anon key real */
+      supabaseAnonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpoYXZuc2NxaHNlZHJ2b2tlb2NiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0ODQ1MDcsImV4cCI6MjA3NDA2MDUwN30.Lace39ORNPoDb5iGz8_hlRTRhH3I1JhvD5sPKwzOiys"
     };
   </script>
 
@@ -263,4 +239,3 @@
   <script src="./ui.js"></script>
 </body>
 </html>
-
