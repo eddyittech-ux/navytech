@@ -1,6 +1,5 @@
 // UI state, router, theming, auth gating, CRUD contactos
 (() => {
-  // ===== Helpers =====
   const onReady = (fn) => (document.readyState === "loading" ? document.addEventListener("DOMContentLoaded", fn) : fn());
   const qs  = (sel, el = document) => el.querySelector(sel);
   const qsa = (sel, el = document) => [...el.querySelectorAll(sel)];
@@ -18,7 +17,7 @@
   const mainNav     = qs('#mainNav');
   const authActions = qs('#authActions');
 
-  // ===== Theme (icono sol/luna) =====
+  // ===== Theme =====
   const THEME_KEY = 'nt-theme';
   function setThemeIcon(theme){
     const icon = document.getElementById('themeIcon');
@@ -110,11 +109,10 @@
       }
       if (loginBtn){ loginBtn.disabled = true; loginBtn.style.opacity = .6; loginBtn.textContent = 'Entrando…'; }
       try {
-        await window.NT.auth.signIn(email, password);
+        // 🔥 usamos el user DEVUELTO por signIn para refrescar al instante
+        const signedUser = await window.NT.auth.signIn(email, password);
         toast('Sesión iniciada', 'success');
-        // refresco inmediato sin esperar onAuth
-        const user = await window.NT.auth.getUser();
-        refreshAuthUI(user);
+        await refreshAuthUI(signedUser);
       } catch (err) {
         console.error(err);
         toast(`Login failed: ${err.message || 'credenciales inválidas'}`, 'error');
@@ -128,11 +126,9 @@
       toast('Sesión cerrada', 'success');
     });
 
-    // Suscripción a cambios de auth: recibimos user directo desde app.js
+    // suscripción a cambios de auth (recibe user desde app.js)
     if (window.NT?.auth?.onAuth) {
-      window.NT.auth.onAuth((user) => {
-        refreshAuthUI(user);
-      });
+      window.NT.auth.onAuth((user) => { refreshAuthUI(user); });
     }
   });
 
@@ -311,7 +307,6 @@
     }
   });
 
-  // Utils
   function escapeHtml(s='') {
     return String(s).replace(/[&<>"'`=\/]/g, c => (
       { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D;' }[c]
