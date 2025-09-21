@@ -1,6 +1,7 @@
-// Estado UI, router por hash, theming (icono), renderizadores y modal (CRUD)
+// UI state, router, theming, auth gating, CRUD contactos
 (() => {
-  // ===== Shortcuts =====
+  // ===== Helpers =====
+  const onReady = (fn) => (document.readyState === "loading" ? document.addEventListener("DOMContentLoaded", fn) : fn());
   const qs  = (sel, el = document) => el.querySelector(sel);
   const qsa = (sel, el = document) => [...el.querySelectorAll(sel)];
   const $$  = (el, show=true) => el.classList.toggle('hidden-vis', !show);
@@ -14,22 +15,11 @@
     ajustes: qs('#view-ajustes'),
   };
 
-  // Header / Auth / Controls
-  const authCard = qs('#authCard');
-  const appViews = qs('#appViews');
-  const logoutBtn = qs('#logoutBtn');
-  const loginForm = qs('#loginForm');
+  // Header bits
+  const mainNav     = qs('#mainNav');
+  const authActions = qs('#authActions');
 
-  // Nav
-  function highlightActiveNav() {
-    const key = (location.hash || '#/resumen').replace('#/','');
-    qsa('#mainNav .nav-link').forEach(a=>{
-      const href = a.getAttribute('href').replace('#/','');
-      a.classList.toggle('active', href === key);
-    });
-  }
-
-  // Theme (icono sol/luna)
+  // ===== Theme (icono sol/luna) =====
   const THEME_KEY = 'nt-theme';
   function setThemeIcon(theme){
     const icon = document.getElementById('themeIcon');
@@ -47,9 +37,12 @@
     const saved = localStorage.getItem(THEME_KEY) || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     applyTheme(saved);
   }
-  qs('#themeToggle').addEventListener('click', () => {
-    const cur = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-    applyTheme(cur==='dark' ? 'light' : 'dark');
+  onReady(() => {
+    const themeToggle = qs('#themeToggle');
+    themeToggle?.addEventListener('click', () => {
+      const cur = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+      applyTheme(cur==='dark' ? 'light' : 'dark');
+    });
   });
 
   // ===== Toasts =====
@@ -63,6 +56,13 @@
   }
 
   // ===== Router =====
+  function highlightActiveNav() {
+    const key = (location.hash || '#/resumen').replace('#/','');
+    qsa('#mainNav .nav-link').forEach(a=>{
+      const href = a.getAttribute('href').replace('#/','');
+      a.classList.toggle('active', href === key);
+    });
+  }
   function showView(name) {
     Object.entries(views).forEach(([key, el]) => $$(el, key===name));
     if (name === 'ajustes') renderContacts();
@@ -76,47 +76,84 @@
     showView(key);
   }
   window.addEventListener('hashchange', parseRoute);
-  window.addEventListener('hashchange', highlightActiveNav);
 
-  // ===== Auth UI =====
+  // ===== Auth gating =====
+  const authCard = qs('#authCard');
+  const appViews = qs('#appViews');
+
   async function refreshAuthUI(user) {
-    if (user) {
-      $$(authCard, false); $$(appViews, true);
-      const tip = document.getElementById('userTooltip'); if (tip) tip.textContent = user.email || '';
+    const isIn = !!user;
+    $$(authCard, !isIn);
+    $$(appViews,  isIn);
+    $$(mainNav,   isIn);
+    $$(authActions, isIn);
+
+    const tip = document.getElementById('userTooltip');
+    if (tip) tip.textContent = isIn ? (user.email || '') : '';
+
+    if (isIn) {
       if (!location.hash) location.hash = '#/resumen';
       parseRoute();
-    } else {
-      $$(authCard, true); $$(appViews, false);
-      const tip = document.getElementById('userTooltip'); if (tip) tip.textContent = '';
     }
   }
 
   // ===== Login/Logout handlers =====
-  loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = qs('#emailInput').value.trim();
-    const password = qs('#passwordInput').value;
-    const btn = loginForm.querySelector('button[type="submit"]');
-    if (btn) { btn.disabled = true; btn.style.opacity = .6; btn.textContent = 'Entrando…'; }
-    try {
-      await window.NT.auth.signIn(email, password);
-      toast('Sesión iniciada', 'success');
-    } catch (err) {
-      console.error(err);
-      toast(`Login failed: ${err.message || 'credenciales inválidas'}`, 'error');
-    } finally {
-      if (btn) { btn.disabled = false; btn.style.opacity = 1; btn.textContent = 'Entrar'; }
+  onReady(() => {
+    const loginForm = qs('#loginForm');
+    const loginBtn  = qs('#loginBtn');
+    loginForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = qs('#emailInput').value.trim();
+      const password = qs('#passwordInput').value;
+      if (!window.NT?.auth?.signIn) {
+        toast('Config inválida (NT no inicializado). Revisa ANON KEY/URL.', 'error');
+        return;
+      }
+      if (loginBtn){ loginBtn.disabled = true; loginBtn.style.opacity = .6; loginBtn.textContent = 'Entrando…'; }
+      try {
+        await window.NT.auth.signIn(email, password);
+        toast('Sesión iniciada', 'success');
+      } catch (err) {
+        console.error(err);
+        toast(`Login failed: ${err.message || 'credenciales inválidas'}`, 'error');
+      } finally {
+        if (loginBtn){ loginBtn.disabled = false; loginBtn.style.opacity = 1; loginBtn.textContent = 'Entrar'; }
+      }
+    });
+
+    qs('#logoutBtn')?.addEventListener('click', async () => {
+      await window.NT.auth.signOut();
+      toast('Sesión cerrada', 'success');
+    });
+
+    // Suscripción a cambios de auth
+    if (window.NT?.auth?.onAuth) {
+      window.NT.auth.onAuth(async (_event, _session) => {
+        // fallback, pero además:
+        refreshAuthUI((await window.NT.auth.getUser()));
+      });
     }
   });
-  qs('#logoutBtn').addEventListener('click', async () => {
-    await window.NT.auth.signOut();
-    toast('Sesión cerrada', 'success');
+
+  // Init auth UI con sesión existente
+  onReady(async () => {
+    initTheme();
+    if (window.NT?.auth?.getUser) {
+      const user = await window.NT.auth.getUser();
+      refreshAuthUI(user);
+    } else {
+      // si NT aún no existe por un error de config, deja login visible
+      refreshAuthUI(null);
+    }
   });
-  window.NT.auth.onAuth(async (user) => refreshAuthUI(user));
 
   // ===== Resumen (mini métricas Contactos) =====
   async function renderResumen() {
     const wrap = qs('#resumeStats');
+    if (!window.NT?.contacts?.listContacts) {
+      wrap.innerHTML = `<div class="text-sm text-red-300">Config inválida: NT no listo</div>`;
+      return;
+    }
     wrap.innerHTML = `<div class="text-sm opacity-70">Cargando...</div>`;
     try {
       const all = await window.NT.contacts.listContacts();
@@ -166,10 +203,11 @@
   const treatmentInput = qs('#treatmentInput');
   const notesInput = qs('#notesInput');
 
-  filterStatus.addEventListener('change', renderContacts);
-  addFab.addEventListener('click', () => openModal());
+  filterStatus?.addEventListener('change', renderContacts);
+  addFab?.addEventListener('click', () => openModal());
 
   async function renderContacts() {
+    if (!window.NT?.contacts?.listContacts) return;
     contactsList.innerHTML = `<div class="text-sm opacity-70">Cargando...</div>`;
     try {
       const status = filterStatus.value || undefined;
@@ -179,7 +217,6 @@
         return;
       }
       contactsList.innerHTML = items.map(cardContact).join('');
-      // wire actions
       qsa('[data-edit]').forEach(btn => btn.addEventListener('click', () => {
         const id = btn.getAttribute('data-edit');
         const item = items.find(x => x.id === id);
@@ -236,9 +273,9 @@
     notesInput.value = item?.notes || '';
     contactModal.showModal();
   }
-  qs('#closeModal').addEventListener('click', () => contactModal.close());
+  qs('#closeModal')?.addEventListener('click', () => contactModal.close());
 
-  deleteBtn.addEventListener('click', async () => {
+  deleteBtn?.addEventListener('click', async () => {
     const id = idInput.value;
     if (!id) return;
     if (!confirm('¿Eliminar contacto?')) return;
@@ -250,7 +287,7 @@
     } catch (e) { console.error(e); toast('Error al eliminar', 'error'); }
   });
 
-  contactForm.addEventListener('submit', async (e) => {
+  contactForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!nameInput.value.trim()) { toast('Nombre es obligatorio', 'error'); return; }
     try {
@@ -280,8 +317,4 @@
       { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D;' }[c]
     ));
   }
-
-  // ===== Init =====
-  initTheme();
-  (async () => { refreshAuthUI(await window.NT.auth.getUser()); })();
 })();
