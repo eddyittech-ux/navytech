@@ -14,14 +14,14 @@
   async function signIn(email, password) {
     const { data, error } = await sb.auth.signInWithPassword({ email, password });
     if (error) throw error;
-    return data.user;
+    return data.user; // devolvemos el user directo
   }
   async function signOut() { await sb.auth.signOut(); }
   function onAuth(cb) { return sb.auth.onAuthStateChange((_e, s) => cb(s?.user || null)); }
   async function getUser() { const { data:{ user } } = await sb.auth.getUser(); return user; }
 
   // ===== Contacts CRUD =====
-  const CONTACTS = 'contacts'; // <- SIN "public."
+  const CONTACTS = 'contacts'; // <- sin "public."
   const table = () => sb.from(CONTACTS);
 
   async function listContacts({ status } = {}) {
@@ -34,7 +34,7 @@
 
   async function upsertContact(payload) {
     const clean = { ...payload };
-    if (!clean.id) delete clean.id; // insert → usa DEFAULT gen_random_uuid() en DB
+    if (!clean.id) delete clean.id; // insert → usa DEFAULT gen_random_uuid()
     const { data, error } = await table().upsert(clean).select().single();
     if (error) throw error;
     return data;
