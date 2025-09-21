@@ -34,7 +34,7 @@
   }
 
   async function upsertContact(payload) {
-    // Si viene id -> update; si no -> insert
+    // Si viene id -> update; si no -> insert (requiere default gen_random_uuid() en DB)
     const clean = { ...payload };
     if (!clean.id) delete clean.id;
     const { data, error } = await sb.from(CONTACTS).upsert(clean).select().single();
