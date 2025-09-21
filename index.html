@@ -5,10 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>NavyTech</title>
 
-  <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Estilo “Glass Studio” (sin build) -->
   <style>
     :root{
       --bg-grad-1:#f3f6fb; --bg-grad-2:#e9eef7;
@@ -120,7 +118,6 @@
 
     <!-- App views -->
     <section id="appViews" class="space-y-6 hidden-vis">
-      <!-- Resumen -->
       <div id="view-resumen" class="gs-card p-5">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-lg font-semibold">Resumen</h2>
@@ -129,7 +126,6 @@
         <div id="resumeStats" class="grid grid-cols-1 sm:grid-cols-3 gap-4"></div>
       </div>
 
-      <!-- Ajustes · Contactos -->
       <div id="view-ajustes" class="gs-card p-5">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-lg font-semibold">Ajustes · Contactos</h2>
@@ -149,7 +145,6 @@
         <div id="contactsList" class="grid gap-3"></div>
       </div>
 
-      <!-- Placeholders -->
       <div id="view-acuerdos" class="gs-card p-5 hidden-vis"><h2 class="text-lg font-semibold mb-2">Acuerdos</h2><p class="opacity-70 text-sm">Próxima fase.</p></div>
       <div id="view-metas"   class="gs-card p-5 hidden-vis"><h2 class="text-lg font-semibold mb-2">Metas</h2><p class="opacity-70 text-sm">Próxima fase.</p></div>
       <div id="view-luces"   class="gs-card p-5 hidden-vis"><h2 class="text-lg font-semibold mb-2">Luces</h2><p class="opacity-70 text-sm">Próxima fase.</p></div>
@@ -157,7 +152,7 @@
     </section>
   </main>
 
-  <!-- Modal Contacto (CRUD) -->
+  <!-- Modal Contacto -->
   <dialog id="contactModal" class="rounded-2xl w-full max-w-lg p-0 backdrop:bg-black/50">
     <form id="contactForm" method="dialog" class="gs-card p-5">
       <div class="flex items-center justify-between mb-3">
@@ -222,18 +217,16 @@
     </form>
   </dialog>
 
-  <!-- Toasts -->
   <div id="toastHost" class="fixed bottom-4 right-4 space-y-2"></div>
 
-  <!-- Config (PON AQUÍ TU ANON KEY REAL) -->
+  <!-- Config: Pega tu ANON KEY real -->
   <script>
     window.__NT_CONFIG__ = {
       supabaseUrl: "https://zhavnscqhsedrvokeocb.supabase.co",
-      supabaseAnonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpoYXZuc2NxaHNlZHJ2b2tlb2NiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0ODQ1MDcsImV4cCI6MjA3NDA2MDUwN30.Lace39ORNPoDb5iGz8_hlRTRhH3I1JhvD5sPKwzOiys"
+      supabaseAnonKey: "REEMPLAZA_CON_TU_ANON_KEY"
     };
   </script>
 
-  <!-- App scripts -->
   <script src="https://unpkg.com/@supabase/supabase-js@2.47.10/dist/umd/supabase.js"></script>
   <script src="./app.js"></script>
   <script src="./ui.js"></script>
