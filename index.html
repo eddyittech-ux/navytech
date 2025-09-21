@@ -79,9 +79,9 @@
   <!-- Header -->
   <header class="sticky top-0 z-40 backdrop-blur bg-white/40 dark:bg-slate-900/40 border-b border-white/20 dark:border-white/10">
     <div class="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 select-none">
         <div class="w-8 h-8 rounded-xl" style="background: linear-gradient(135deg,#163054 0%,#3F3D8F 70%);"></div>
-        <h1 class="text-lg font-semibold tracking-tight select-none">
+        <h1 class="text-lg font-semibold tracking-tight">
           <span style="color:#163054">Navy</span><span style="color:#3F3D8F">Tech</span>
         </h1>
       </div>
@@ -97,15 +97,14 @@
       </nav>
 
       <div class="ml-auto flex items-center gap-2">
-        <!-- Theme toggle (icono) -->
-        <button id="themeToggle" class="gs-btn flex items-center gap-2" title="Cambiar tema" aria-label="Cambiar tema">
+        <!-- Tema -->
+        <button id="themeToggle" class="gs-btn flex items-center justify-center" title="Cambiar tema" aria-label="Cambiar tema">
           <span id="themeIcon" class="inline-block" aria-hidden="true">
-            <!-- icono se reemplaza por JS (sol/luna) -->
             <svg class="gs-icon" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="1.5"/></svg>
           </span>
         </button>
 
-        <!-- Usuario (icono con tooltip) -->
+        <!-- Usuario -->
         <div class="relative group">
           <div class="gs-btn flex items-center justify-center" aria-label="Usuario">
             <svg class="gs-icon" viewBox="0 0 24 24" fill="none">
@@ -115,7 +114,7 @@
           <div id="userTooltip" class="tooltip hidden group-hover:block"></div>
         </div>
 
-        <!-- Salir (icono) -->
+        <!-- Salir -->
         <button id="logoutBtn" class="gs-btn flex items-center justify-center" title="Salir" aria-label="Salir">
           <svg class="gs-icon" viewBox="0 0 24 24" fill="none">
             <path d="M9 7V5a2 2 0 0 1 2-2h7v18h-7a2 2 0 0 1-2-2v-2" stroke="currentColor" stroke-width="1.5"/>
@@ -203,17 +202,20 @@
           </select>
         </div>
         <div class="sm:col-span-2">
-          <label class="gs-label">Nombre</label>
-          <input id="nameInput" class="gs-input" required>
+          <label class="gs-label">Nombre / Alias</label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input id="nameInput"  class="gs-input" placeholder="Nombre" required>
+            <input id="aliasInput" class="gs-input" placeholder="Alias (opcional)">
+          </div>
         </div>
         <div>
-          <label class="gs-label">Categoría</label>
+          <label class="gs-label">Clasificación</label>
           <select id="categoryInput" class="gs-input">
             <option>Rojo</option><option>Ámbar</option><option>Verde</option><option>Azul</option>
           </select>
         </div>
         <div>
-          <label class="gs-label">Estado</label>
+          <label class="gs-label">Estado actual</label>
           <select id="statusInput" class="gs-input">
             <option></option>
             <option>Bloqueado</option><option>Silenciado</option><option>Archivado</option>
@@ -221,8 +223,17 @@
           </select>
         </div>
         <div class="sm:col-span-2">
-          <label class="gs-label">Action plan</label>
-          <input id="actionPlanInput" class="gs-input" placeholder="(catálogo, fase 2)">
+          <label class="gs-label">Trato</label>
+          <select id="treatmentInput" class="gs-input">
+            <option></option>
+            <option>Eliminar</option>
+            <option>Bloquear</option>
+            <option>Silenciar</option>
+            <option>Mantener para temas no sensibles</option>
+            <option>Archivar</option>
+            <option>Responder y bloquear</option>
+            <option>Responder y eliminar</option>
+          </select>
         </div>
         <div class="sm:col-span-2">
           <label class="gs-label">Notas</label>
