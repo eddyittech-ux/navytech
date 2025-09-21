@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Navytech (demo Supabase 100% online)</title>
+
+<!-- Tailwind por CDN (sin build) -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: { extend: {} }
+  }
+</script>
+
+<style>
+  .glass { background: rgba(255,255,255,.75); border:1px solid rgba(15,23,42,.12); backdrop-filter: blur(10px); border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,.10); }
+  .dark .glass { background: rgba(2,6,23,.6); border-color: rgba(148,163,184,.2); }
+</style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+  <div class="max-w-4xl mx-auto p-4 space-y-4">
+
+    <header class="glass px-4 py-3 flex items-center justify-between">
+      <div class="font-semibold">Navytech</div>
+      <div class="flex items-center gap-2">
+        <button id="btnTheme" class="px-3 py-1 rounded hover:bg-slate-200/60 dark:hover:bg-slate-800/60" type="button">Tema</button>
+      </div>
+    </header>
+
+    <section class="glass p-4">
+      <h2 class="font-semibold mb-3">Contactos (CRUD mínimo)</h2>
+
+      <div id="errBox" class="text-sm text-red-600 hidden mb-2"></div>
+
+      <div class="grid sm:grid-cols-2 gap-2 mb-3">
+        <input id="c_name" class="px-3 py-2 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900" placeholder="Nombre" />
+        <select id="c_owner" class="px-3 py-2 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900">
+          <option>Eddy</option><option>Dani</option>
+        </select>
+        <select id="c_category" class="px-3 py-2 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900">
+          <option>Azul</option><option>Verde</option><option>Ámbar</option><option>Rojo</option>
+        </select>
+        <select id="c_status" class="px-3 py-2 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900">
+          <option>Conservado</option><option>Silenciado</option><option>Archivado</option>
+          <option>Bloqueado</option><option>Eliminado</option><option>Inaccesible</option>
+        </select>
+        <input id="c_action" class="px-3 py-2 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 sm:col-span-2" placeholder="Acción (opcional)" />
+        <textarea id="c_notes" class="px-3 py-2 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 sm:col-span-2" placeholder="Notas"></textarea>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button id="btnAdd" class="px-4 py-2 rounded bg-indigo-600 text-white" type="button">Guardar</button>
+        <button id="btnReload" class="px-4 py-2 rounded bg-slate-200 dark:bg-slate-800" type="button">Recargar</button>
+      </div>
+
+      <div class="h-px my-4 bg-slate-200 dark:bg-slate-800"></div>
+
+      <div id="list" class="grid gap-2"></div>
+    </section>
+  </div>
+
+  <!-- Supabase JS por CDN (sin build; ESM) -->
+  <script type="module">
+    // 1) Pega aquí tus credenciales (Settings → API)
+    const SUPABASE_URL  = 'https://TU-PROYECTO.supabase.co';
+    const SUPABASE_ANON = 'TU-ANON-KEY';
+
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js?bundle';
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    // UI refs
+    const list = document.getElementById('list');
+    const errBox = document.getElementById('errBox');
+
+    const c_name = document.getElementById('c_name');
+    const c_owner = document.getElementById('c_owner');
+    const c_category = document.getElementById('c_category');
+    const c_status = document.getElementById('c_status');
+    const c_action = document.getElementById('c_action');
+    const c_notes  = document.getElementById('c_notes');
+
+    const btnAdd = document.getElementById('btnAdd');
+    const btnReload = document.getElementById('btnReload');
+
+    // Tema
+    const btnTheme = document.getElementById('btnTheme');
+    btnTheme.addEventListener('click', () => {
+      const html = document.documentElement;
+      html.classList.toggle('dark');
+      localStorage.setItem('navy_theme', html.classList.contains('dark') ? 'dark' : 'light');
+    });
+    (function initTheme(){
+      const t = localStorage.getItem('navy_theme') || 'light';
+      if (t==='dark') document.documentElement.classList.add('dark');
+    })();
+
+    function showError(msg) {
+      errBox.textContent = msg || '';
+      errBox.classList.toggle('hidden', !msg);
+    }
+
+    async function loadContacts() {
+      showError('');
+      list.innerHTML = 'Cargando…';
+      const { data, error } = await supabase
+        .from('contacts')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) {
+        list.innerHTML = '';
+        return showError(error.message);
+      }
+      renderList(data || []);
+    }
+
+    function renderList(items) {
+      if (!items.length) {
+        list.innerHTML = '<div class="text-sm opacity-70">Sin contactos aún.</div>';
+        return;
+      }
+      list.innerHTML = items.map(c => `
+        <div class="px-3 py-2 rounded border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+          <div class="truncate">
+            <div class="font-medium truncate">${c.name} <span class="opacity-60">(${c.owner})</span></div>
+            <div class="text-sm opacity-70 truncate">${c.category} • ${c.status} ${c.action_plan ? '• '+c.action_plan : ''}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    btnAdd.addEventListener('click', async () => {
+      showError('');
+      const name = (c_name.value || '').trim();
+      if (!name) return showError('El nombre es obligatorio.');
+
+      const payload = {
+        name,
+        owner: c_owner.value,
+        category: c_category.value,
+        status: c_status.value,
+        action_plan: (c_action.value || null),
+        notes: (c_notes.value || null),
+      };
+      const { error } = await supabase.from('contacts').insert([payload]);
+      if (error) return showError(error.message);
+
+      // limpia y recarga
+      c_name.value = ''; c_action.value = ''; c_notes.value = '';
+      await loadContacts();
+    });
+
+    btnReload.addEventListener('click', loadContacts);
+
+    // primer render
+    loadContacts();
+  </script>
+</body>
+</html>
