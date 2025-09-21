@@ -24,28 +24,34 @@
   }
 
   // ===== Contacts CRUD =====
-  const CONTACTS = 'public.contacts';
+const CONTACTS = 'contacts'; // <- sin "public."
 
-  async function listContacts({ status } = {}) {
-    let q = sb.from(CONTACTS).select('*').order('updated_at', { ascending: false });
-    if (status) q = q.eq('status', status);
-    const { data, error } = await q;
-    if (error) throw error;
-    return data;
-  }
+function contactsFrom() {
+  // si algún día cambias a otro esquema, usa .schema('otro').from(CONTACTS)
+  return window.NT.sb.from(CONTACTS);
+}
 
-  async function upsertContact(payload) {
-    const clean = { ...payload };
-    if (!clean.id) delete clean.id; // insert -> usa default gen_random_uuid()
-    const { data, error } = await sb.from(CONTACTS).upsert(clean).select().single();
-    if (error) throw error;
-    return data;
-  }
+async function listContacts({ status } = {}) {
+  let q = contactsFrom().select('*').order('updated_at', { ascending: false });
+  if (status) q = q.eq('status', status);
+  const { data, error } = await q;
+  if (error) throw error;
+  return data;
+}
 
-  async function deleteContact(id) {
-    const { error } = await sb.from(CONTACTS).delete().eq('id', id);
-    if (error) throw error;
-  }
+async function upsertContact(payload) {
+  const clean = { ...payload };
+  if (!clean.id) delete clean.id; // insert -> usa DEFAULT gen_random_uuid()
+  const { data, error } = await contactsFrom().upsert(clean).select().single();
+  if (error) throw error;
+  return data;
+}
+
+async function deleteContact(id) {
+  const { error } = await contactsFrom().delete().eq('id', id);
+  if (error) throw error;
+}
+
 
   // ===== Export API to window =====
   window.NT = {
