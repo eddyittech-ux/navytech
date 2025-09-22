@@ -59,28 +59,83 @@
   }
   onReady(()=> window.addEventListener('hashchange', parseRoute));
 
-  // ========== AUTH ==========
-  const authCard=() => qs('#authCard'); const appViews=() => qs('#appViews');
+  // ===== AUTH (reemplazo) =====
+(() => {
+  const qs = (s, el=document) => el.querySelector(s);
+  const $$ = (el, show=true) => el && el.classList.toggle('hidden-vis', !show);
+  const toast = (m,t='info') => {
+    const host=qs('#toastHost')||document.body;
+    const d=document.createElement('div');
+    d.className=`gs-card px-4 py-2 text-sm border-l-4 ${t==='error'?'border-red-400':t==='success'?'border-emerald-400':'border-[#C7A740]'}`;
+    d.textContent=m; host.appendChild(d); setTimeout(()=>d.remove(),3000);
+  };
+
+  const authCard = () => qs('#authCard');
+  const appViews = () => qs('#appViews');
+
   async function refreshAuthUI(user){
     const logged=!!user;
-    $$(authCard(),!logged); $$(appViews(),logged); $$(qs('#mainNav'),logged); $$(qs('#authActions'),logged);
+    $$(authCard(),!logged);
+    $$(appViews(),logged);
+    $$(qs('#mainNav'),logged);
+    $$(qs('#authActions'),logged);
     const tip=qs('#userTooltip'); if(tip) tip.textContent=logged?(user.email||''):'';
-    if(logged){ if(!location.hash) location.hash='#/resumen'; parseRoute(); }
+    if(logged){
+      if(!location.hash) location.hash = '#/resumen';
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+    }
   }
-  onReady(()=>{ 
-    const loginForm=qs('#loginForm'); const loginBtn=qs('#loginBtn');
-    loginForm?.addEventListener('submit', async(e)=>{
+
+  // enlace robusto del submit; reintenta si el form aún no existe
+  function attachLoginHandlers(attempt=0){
+    const form = qs('#loginForm');
+    const btn  = qs('#loginBtn');
+    if(!form || !btn){
+      if (attempt < 20) return setTimeout(()=>attachLoginHandlers(attempt+1), 100);
+      return;
+    }
+    if(form.__bound) return; // evita doble binding
+    form.__bound = true;
+
+    form.addEventListener('submit', async (e)=>{
       e.preventDefault();
-      const email=qs('#emailInput').value.trim(); const password=qs('#passwordInput').value;
-      if(loginBtn){loginBtn.disabled=true;loginBtn.style.opacity=.6;loginBtn.textContent='Entrando…';}
-      try{ const user=await window.NT.auth.signIn(email,password); toast('Sesión iniciada','success'); await refreshAuthUI(user);}
-      catch(err){ console.error(err); toast(`Login failed: ${err.message||'credenciales inválidas'}`,'error'); }
-      finally{ if(loginBtn){loginBtn.disabled=false;loginBtn.style.opacity=1;loginBtn.textContent='Entrar';} }
+      await doLogin();
     });
-    qs('#logoutBtn')?.addEventListener('click', async()=>{ await window.NT.auth.signOut(); toast('Sesión cerrada','success'); });
-    if(window.NT?.auth?.onAuth){ window.NT.auth.onAuth((u)=>refreshAuthUI(u)); }
+  }
+
+  async function doLogin(){
+    const email = qs('#emailInput')?.value?.trim();
+    const password = qs('#passwordInput')?.value || '';
+    const btn = qs('#loginBtn');
+    if (!email || !password) { toast('Completa email y password','error'); return; }
+    try{
+      btn.disabled = true; btn.textContent = 'Entrando…';
+      const user = await window.NT.auth.signIn(email, password);
+      toast('Sesión iniciada','success');
+      await refreshAuthUI(user);
+    }catch(err){
+      console.error(err);
+      toast(err.message || 'No se pudo iniciar sesión','error');
+    }finally{
+      btn.disabled = false; btn.textContent = 'Entrar';
+    }
+  }
+
+  // Fallback para el onclick inline del botón
+  window.NT = window.NT || {};
+  window.NT.ui = window.NT.ui || {};
+  window.NT.ui.tryLogin = doLogin;
+
+  // inicio
+  document.addEventListener('DOMContentLoaded', async ()=>{
+    attachLoginHandlers();
+    // escucha cambios de auth (token refresh, etc.)
+    window.NT.auth.onAuth((u)=> refreshAuthUI(u));
+    const u = await window.NT.auth.getUser().catch(()=>null);
+    refreshAuthUI(u);
   });
-  onReady(async()=>{ initTheme(); if(window.NT?.auth?.getUser){ const u=await window.NT.auth.getUser(); refreshAuthUI(u);} else { refreshAuthUI(null);} });
+})();
+
 
   // ========== FLATPICKR ==========
   function fp(el){
