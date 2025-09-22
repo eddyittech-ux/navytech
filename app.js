@@ -1,140 +1,238 @@
-/* app.js v0.5 — NavyTech
-   - Supabase init
-   - Auth helpers
-   - Servicios: contacts, agreCats, agreements, practices, locations, games, lights, goals
+/* app.js v0.5.0 — NavyTech Core (Supabase + servicios)
+   - Usa tu proyecto y anon key reales (sin placeholders)
+   - Tablas: contacts, agreement_categories, agreements, practices, locations, games, lights
 */
 
 (() => {
-  // ===== Supabase =====
+  // ---- Supabase client ----
   const SUPABASE_URL = "https://zhavnscqhsedrvokeocb.supabase.co";
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpoYXZuc2NxaHNlZHJ2b2tlb2NiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0ODQ1MDcsImV4cCI6MjA3NDA2MDUwN30.Lace39ORNPoDb5iGz8_hlRTRhH3I1JhvD5sPKwzOiys";
+  const SUPABASE_ANON_KEY =
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpoYXZuc2NxaHNlZHJ2b2tlb2NiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0ODQ1MDcsImV4cCI6MjA3NDA2MDUwN30.Lace39ORNPoDb5iGz8_hlRTRhH3I1JhvD5sPKwzOiys";
 
-  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      detectSessionInUrl: true,
-    }
+    },
+    db: { schema: "public" },
   });
 
-  // Exponer namespace
-  window.NT = window.NT || {};
-  window.NT.db = client;
-
-  // ===== Auth =====
-  async function signIn(email, password) {
-    const { data, error } = await client.auth.signInWithPassword({ email, password });
+  // ---- Helpers de error ----
+  const unwrap = async (res) => {
+    const { data, error } = await res;
     if (error) throw error;
-    return data.user;
-  }
-  async function signOut() {
-    const { error } = await client.auth.signOut(); if (error) throw error; return true;
-  }
-  async function getUser() {
-    const { data } = await client.auth.getUser(); return data?.user || null;
-  }
-  function onAuth(cb) {
-    client.auth.onAuthStateChange((_evt, sess)=> cb(sess?.user || null));
-  }
+    return data ?? null;
+  };
 
-  window.NT.auth = { signIn, signOut, getUser, onAuth };
+  // ---- Auth ----
+  const auth = {
+    async signIn(email, password) {
+      // Solo Eddy y Dani (RLS ya restringe, pero validamos UX)
+      const allowed = ["eddytcamayo@gmail.com", "sanchezsanchezdaniel1912@gmail.com"];
+      if (!allowed.includes(String(email).toLowerCase())) {
+        throw new Error("Usuario no permitido.");
+      }
+      const { data, error } = await supa.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      return data.user;
+    },
+    async signOut() {
+      await supa.auth.signOut();
+      return true;
+    },
+    async getUser() {
+      const { data } = await supa.auth.getUser();
+      return data?.user ?? null;
+    },
+    onAuth(cb) {
+      supa.auth.onAuthStateChange((_evt, session) => cb(session?.user ?? null));
+    },
+  };
 
-  // ===== Helpers =====
-  const selAll = async (q) => { const { data, error } = await q; if (error) throw error; return data || []; };
-  const selOne = async (q) => { const { data, error } = await q.select().single(); if (error) throw error; return data; };
+  // ---- Tablas ----
+  const TBL = {
+    contacts: "contacts",
+    agreCats: "agreement_categories",
+    agreements: "agreements",
+    practices: "practices",
+    locations: "locations",
+    games: "games",          // <- nombre correcto
+    lights: "lights",
+  };
 
-  // ===== Contacts =====
-  window.NT.contacts = (() => {
-    const T = 'contacts';
-    async function listContacts({ status } = {}) {
-      let q = client.from(T).select('*').order('updated_at', { ascending: false });
-      if (status) q = q.eq('status', status);
-      return selAll(q);
+  // ---- Servicios ----
+  const contacts = {
+    async listContacts({ status } = {}) {
+      let q = supa.from(TBL.contacts).select("*").order("updated_at", { ascending: false });
+      if (status) q = q.eq("status", status);
+      return unwrap(q);
+    },
+    async upsertContact(payload) {
+      // Campos permitidos
+      const item = {
+        id: payload.id ?? undefined,
+        owner: payload.owner,
+        name: payload.name,
+        alias: payload.alias ?? null,
+        category: payload.category ?? null,
+        status: payload.status ?? null,
+        treatment: payload.treatment ?? null,
+        notes: payload.notes ?? null,
+      };
+      return unwrap(supa.from(TBL.contacts).upsert(item).select().single());
+    },
+    async deleteContact(id) {
+      return unwrap(supa.from(TBL.contacts).delete().eq("id", id));
+    },
+  };
+
+  const agreCats = {
+    async listAgreementCategories({ onlyActive = false } = {}) {
+      let q = supa.from(TBL.agreCats).select("*").order("label", { ascending: true });
+      if (onlyActive) q = q.eq("active", true);
+      return unwrap(q);
+    },
+    async upsertAgreementCategory({ key, label, active = true }) {
+      return unwrap(
+        supa
+          .from(TBL.agreCats)
+          .upsert({ key, label, active })
+          .select()
+          .single()
+      );
+    },
+  };
+
+  const agreements = {
+    async listAgreements({ status } = {}) {
+      let q = supa.from(TBL.agreements).select("*").order("created_on", { ascending: false });
+      if (status) q = q.eq("status", status);
+      return unwrap(q);
+    },
+    async upsertAgreement(p) {
+      const item = {
+        id: p.id ?? undefined,
+        category_key: p.category_key,
+        title: p.title,
+        notes: p.notes ?? null,
+        created_on: p.created_on, // yyyy-mm-dd
+        promoter: p.promoter,     // Eddy / Dani / Ambos
+        eddy_decision: p.eddy_decision, // approve/reject/none
+        dani_decision: p.dani_decision, // approve/reject/none
+        status: p.status ?? null,       // puede calcularlo el UI
+      };
+      return unwrap(supa.from(TBL.agreements).upsert(item).select().single());
+    },
+    async deleteAgreement(id) {
+      return unwrap(supa.from(TBL.agreements).delete().eq("id", id));
+    },
+  };
+
+  const practices = {
+    async listPractices({ onlyActive = false } = {}) {
+      let q = supa.from(TBL.practices).select("*").order("label", { ascending: true });
+      if (onlyActive) q = q.eq("active", true);
+      return unwrap(q);
+    },
+    async upsertPractice({ key, label, active = true }) {
+      return unwrap(
+        supa.from(TBL.practices).upsert({ key, label, active }).select().single()
+      );
+    },
+    async deletePractice(key) {
+      return unwrap(supa.from(TBL.practices).delete().eq("key", key));
+    },
+  };
+
+  const locations = {
+    async listLocations() {
+      // Si no tienes tabla, puedes crearla; si no existe, devolvemos lista vacía
+      try {
+        return await unwrap(supa.from(TBL.locations).select("*").order("name", { ascending: true }));
+      } catch {
+        return [];
+      }
+    },
+  };
+
+  const games = {
+    async listGames() {
+      return unwrap(
+        supa.from(TBL.games).select("*").order("played_on", { ascending: false })
+      );
+    },
+    async upsertGame(p) {
+      const item = {
+        id: p.id ?? undefined,
+        played_on: p.played_on,    // yyyy-mm-dd
+        kind: p.kind,              // juego / mini
+        promoter: p.promoter,      // Eddy / Dani / Ambos
+        condom: !!p.condom,
+        role: p.role,              // Eddy→Dani / Dani→Eddy / Ambos versátiles
+        toys: !!p.toys,
+        toys_with: p.toys ? (p.toys_with ?? null) : null,
+        cream_inside: p.cream_inside,
+        location: p.location ?? null,
+        satisfaction: Number(p.satisfaction ?? 0),
+        notes: p.notes ?? null,
+        practices: p.practices ?? [], // array text
+      };
+      return unwrap(supa.from(TBL.games).upsert(item).select().single());
+    },
+    async deleteGame(id) {
+      return unwrap(supa.from(TBL.games).delete().eq("id", id));
+    },
+  };
+
+  const lights = {
+    async listLights({ from, to, who } = {}) {
+      let q = supa
+        .from(TBL.lights)
+        .select("*")
+        .order("light_on", { ascending: false });
+      if (from) q = q.gte("light_on", from);
+      if (to) q = q.lte("light_on", to);
+      if (who) q = q.eq("who", who);
+      return unwrap(q);
+    },
+    async upsertLight(p) {
+      const item = {
+        id: p.id ?? undefined,
+        light_on: p.light_on, // yyyy-mm-dd
+        color: p.color,       // Rojo/Ámbar/Verde/Azul
+        who: p.who,           // Eddy/Dani
+        action: p.action,
+        emotion: p.emotion,   // clave del mapa (meh, feliz, furioso, etc.)
+        notes: p.notes ?? null,
+      };
+      return unwrap(supa.from(TBL.lights).upsert(item).select().single());
+    },
+    async deleteLight(id) {
+      return unwrap(supa.from(TBL.lights).delete().eq("id", id));
+    },
+  };
+
+  // ---- Exponer al UI ----
+  window.NT = {
+    auth,
+    contacts,
+    agreCats,
+    agreements,
+    practices,
+    locations,
+    games,
+    lights,
+  };
+
+  // Logout botón (si existe)
+  document.addEventListener("DOMContentLoaded", () => {
+    const btn = document.getElementById("logoutBtn");
+    if (btn) {
+      btn.addEventListener("click", async () => {
+        await auth.signOut();
+        location.hash = "#/resumen";
+        location.reload();
+      });
     }
-    async function upsertContact(payload) { return selOne(client.from(T).upsert(payload)); }
-    async function deleteContact(id) { const { error } = await client.from(T).delete().eq('id', id); if (error) throw error; return true; }
-    return { listContacts, upsertContact, deleteContact };
-  })();
-
-  // ===== Agreement Categories =====
-  window.NT.agreCats = (() => {
-    const T='agreement_categories';
-    async function listAgreementCategories({ onlyActive } = {}) {
-      let q = client.from(T).select('*').order('label', { ascending: true });
-      if (onlyActive) q = q.eq('active', true);
-      return selAll(q);
-    }
-    return { listAgreementCategories };
-  })();
-
-  // ===== Agreements =====
-  window.NT.agreements = (() => {
-    const T='agreements';
-    async function listAgreements({ status } = {}) {
-      let q = client.from(T).select('*').order('created_on', { ascending: false });
-      if (status) q = q.eq('status', status);
-      return selAll(q);
-    }
-    async function upsertAgreement(payload){ return selOne(client.from(T).upsert(payload)); }
-    async function deleteAgreement(id){ const { error } = await client.from(T).delete().eq('id', id); if (error) throw error; return true; }
-    return { listAgreements, upsertAgreement, deleteAgreement };
-  })();
-
-  // ===== Practices =====
-  window.NT.practices = (() => {
-    const T='practices';
-    async function listPractices({ onlyActive } = {}) {
-      let q = client.from(T).select('*').order('label', { ascending: true });
-      if (onlyActive) q = q.eq('active', true);
-      return selAll(q);
-    }
-    async function upsertPractice(payload){ return selOne(client.from(T).upsert(payload)); }
-    async function deletePractice(key){ const { error } = await client.from(T).delete().eq('key', key); if (error) throw error; return true; }
-    return { listPractices, upsertPractice, deletePractice };
-  })();
-
-  // ===== Locations (for juegos) =====
-  window.NT.locations = (() => {
-    const T='locations';
-    async function listLocations(){ try { return await selAll(client.from(T).select('*').order('name', { ascending: true })); } catch { return []; } }
-    return { listLocations };
-  })();
-
-  // ===== Games =====
-  window.NT.games = (() => {
-    const T='games';
-    async function listGames(){ return selAll(client.from(T).select('*').order('played_on',{ascending:false})); }
-    async function upsertGame(payload){ return selOne(client.from(T).upsert(payload)); }
-    async function deleteGame(id){ const { error } = await client.from(T).delete().eq('id', id); if (error) throw error; return true; }
-    return { listGames, upsertGame, deleteGame };
-  })();
-
-  // ===== Lights =====
-  window.NT.lights = (() => {
-    const T='lights';
-    async function listLights({ from, to } = {}) {
-      let q = client.from(T).select('*').order('light_on', { ascending:false });
-      if (from) q = q.gte('light_on', from);
-      if (to)   q = q.lte('light_on', to);
-      return selAll(q);
-    }
-    async function upsertLight(payload){ return selOne(client.from(T).upsert(payload)); }
-    async function deleteLight(id){ const { error } = await client.from(T).delete().eq('id', id); if (error) throw error; return true; }
-    return { listLights, upsertLight, deleteLight };
-  })();
-
-  // ===== Goals =====
-  window.NT.goals = (() => {
-    const T='goals';
-    async function listGoals({ promoter, status } = {}) {
-      let q = client.from(T).select('*').order('deadline',{ascending:true});
-      if (promoter && promoter!=='Todos') q = q.eq('promoter', promoter);
-      if (status && status!=='todas') q = q.eq('status', status);
-      return selAll(q);
-    }
-    async function upsertGoal(payload){ return selOne(client.from(T).upsert(payload)); }
-    async function deleteGoal(id){ const { error } = await client.from(T).delete().eq('id', id); if (error) throw error; return true; }
-    return { listGoals, upsertGoal, deleteGoal };
-  })();
-
+  });
 })();
