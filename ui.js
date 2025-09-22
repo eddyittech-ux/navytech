@@ -1,4 +1,4 @@
-/* ui.js v0.4.8 — NavyTech
+/* ui.js v0.4.9 — NavyTech
    - Login robusto (fallback, reintentos)
    - Tema sol/luna
    - Resumen avanzado
@@ -161,8 +161,8 @@
       const daniSeries = byDayPerson('Dani');
 
       wrap.innerHTML = `
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
-          <div class="gs-card p-4 col-span-1 lg:col-span-2 flex items-center justify-between">
+        <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 w-full">
+          <div class="gs-card p-4 col-span-2 md:col-span-1 xl:col-span-2 flex items-center justify-between">
             <div>
               <div class="text-xs opacity-70">Días desde reinicio</div>
               <div class="text-4xl font-extrabold" style="color:${goldColor}">${diffDays}</div>
@@ -170,11 +170,13 @@
             </div>
             <div class="text-xs opacity-70">v0.4</div>
           </div>
+
           <div class="gs-card p-4">
             <div class="text-xs opacity-70">Avance de planes/metas</div>
             <div class="text-4xl font-extrabold">${percent}%</div>
             <div class="text-xs opacity-70">Se recalculará cuando metas estén activas</div>
           </div>
+
           <div class="gs-card p-4">
             <div class="text-xs opacity-70">Juegos</div>
             <div class="text-3xl font-bold">${totalGames}</div>
@@ -183,15 +185,18 @@
               <span class="gs-chip" style="border-color:${eddyColor}; color:${eddyColor}">Dani activo: ${daniActive}</span>
             </div>
           </div>
+
           <div class="gs-card p-4 flex items-center justify-between">
             <div>
               <div class="text-xs opacity-70">Satisfacción</div>
-              <div class="text-xs opacity-70 mt-1">Total · Mes · Semana</div>
+              <div class="mt-2 flex gap-2">
+                <span class="gs-chip">Mes: ${avgMonth.toFixed(1)}</span>
+                <span class="gs-chip">Semana: ${avgWeek.toFixed(1)}</span>
+              </div>
             </div>
-            <div class="flex gap-2 items-center">
-              ${gaugeSVG(avgTotal, 70)} ${gaugeSVG(avgMonth, 70)} ${gaugeSVG(avgWeek, 70)}
-            </div>
+            <div>${gaugeSVG(avgTotal, 90)}</div>
           </div>
+
           <div class="gs-card p-4">
             <div class="text-xs opacity-70">Acuerdos</div>
             <div class="flex items-end gap-2 mt-1">
@@ -199,11 +204,13 @@
               <div class="text-sm text-red-500">Pend: ${pend}</div>
             </div>
           </div>
-          <div class="gs-card p-4 col-span-1 lg:col-span-2">
+
+          <div class="gs-card p-4 col-span-2">
             <div class="text-sm font-medium" style="color:${eddyColor}">Emociones · Eddy (60d)</div>
             <div class="mt-2">${sparkline(eddySeries, eddyColor, 520, 60)}</div>
           </div>
-          <div class="gs-card p-4 col-span-1 lg:col-span-2">
+
+          <div class="gs-card p-4 col-span-2">
             <div class="text-sm font-medium" style="color:${daniColor}">Emociones · Dani (60d)</div>
             <div class="mt-2">${sparkline(daniSeries, daniColor, 520, 60)}</div>
           </div>
@@ -266,7 +273,7 @@
   const gameModal=qs('#gameModal'), gameForm=qs('#gameForm'), deleteGameBtn=qs('#deleteGameBtn');
   const gameModalTitle=qs('#gameModalTitle');
   const gameId=qs('#gameId'), gameDate=qs('#gameDate'), gameKind=qs('#gameKind'), gamePromoter=qs('#gamePromoter'), gameCondom=qs('#gameCondom'), gameRole=qs('#gameRole'), gameToys=qs('#gameToys'), gameToysWith=qs('#gameToysWith'), gameCream=qs('#gameCream'), gameLocation=qs('#gameLocation'), gameSatisfaction=qs('#gameSatisfaction'), gameNotes=qs('#gameNotes');
-  const locList=qs('#locList'), practicesChecklist=qs('#practicesChecklist'), satisfactionGauge=qs('#satisfactionGauge');
+  const locList=qs('#locList'), practicesChecklist=qs('#practicesChecklist'), satisfactionGauge=qs('#satisfactionGauge']);
   addGameBtn?.addEventListener('click', async()=>{ await loadPracticesChecklist(); await loadLocations(); openGameModal(); });
   function gauge(value=7){ if(!satisfactionGauge) return; const pct=Math.max(1,Math.min(10,Number(value)))/10; const r=28,C=2*Math.PI*r,dash=(C*pct).toFixed(1); const color=`hsl(${Math.round(120*pct)}, 70%, 45%)`; satisfactionGauge.innerHTML=`<svg width="80" height="80" viewBox="0 0 80 80"><circle cx="40" cy="40" r="${r}" stroke="#e5e7eb" stroke-width="8" fill="none"/><circle cx="40" cy="40" r="${r}" stroke="${color}" stroke-width="8" fill="none" stroke-dasharray="${dash} ${C}" stroke-linecap="round" transform="rotate(-90 40 40)"/><text x="40" y="45" text-anchor="middle" font-size="18" fill="currentColor">${value}</text></svg>`; }
   gameSatisfaction?.addEventListener('input', ()=> gauge(gameSatisfaction.value));
@@ -299,7 +306,15 @@
         lightAction  = qs('#lightAction'),
         lightNotes   = qs('#lightNotes');
 
-  function rangeFrom(type, anchor){ const d=new Date(anchor); if(type==='week'){ const day=(d.getDay()+6)%7; d.setDate(d.getDate()-day); } else { d.setDate(1); } return d.toISOString().slice(0,10); }
+  function rangeFrom(type, anchor){
+    const d=new Date(anchor);
+    if(type==='week'){
+      const day=(d.getDay()+6)%7; d.setDate(d.getDate()-day); // lunes
+    } else {
+      d.setDate(1);
+    }
+    return d.toISOString().slice(0,10);
+  }
   function colorDot(color){ const map={Rojo:'#ef4444','Ámbar':'#f59e0b',Verde:'#22c55e',Azul:'#60a5fa'}; const c=map[color]||'#9ca3af'; return `<span class="inline-block w-2.5 h-2.5 rounded-full" style="background:${c}"></span>`; }
 
   // ***** Mapa de caritas COMPLETO (no tocar nombres de claves) *****
@@ -329,14 +344,25 @@
 
   async function renderLightsInit(){
     const today=new Date();
+
+    // Default a MES para no confundir cuando la semana actual está vacía
+    if (qs('#lightsRangeType')) qs('#lightsRangeType').value='month';
+
     if(fpLightsStart) fpLightsStart.destroy();
     fpLightsStart = flatpickr('#lightsRangeStart', {
       altInput:true, altFormat:"d/m/Y", dateFormat:"Y-m-d",
-      defaultDate: rangeFrom('week', today), allowInput:true,
+      defaultDate: rangeFrom(qs('#lightsRangeType')?.value || 'month', today),
+      allowInput:true,
       onChange: () => renderLights()
     });
-    qs('#lightsRangeType').value='week';
-    qs('#lightsRangeType')?.addEventListener('change', renderLights);
+
+    qs('#lightsRangeType')?.addEventListener('change', () => {
+      const type = qs('#lightsRangeType').value;
+      const base = rangeFrom(type, new Date());
+      fpLightsStart?.setDate(base, true);
+      renderLights();
+    });
+
     await renderLights();
   }
 
@@ -346,7 +372,7 @@
     const list = qs('#lightsList'); if(!list) return;
     list.innerHTML = `<div class="text-sm opacity-70">Cargando...</div>`;
     try{
-      const type=qs('#lightsRangeType')?.value||'week';
+      const type=qs('#lightsRangeType')?.value||'month';
       const start=(qs('#lightsRangeStart')?.value) || rangeFrom(type, new Date());
       const dStart=new Date(start); const dEnd=new Date(start);
       if(type==='week'){ dEnd.setDate(dStart.getDate()+6);} else { dEnd.setMonth(dStart.getMonth()+1); dEnd.setDate(dEnd.getDate()-1); }
@@ -363,7 +389,15 @@
         </div>
       `).join('');
 
-      if(!items.length){ list.innerHTML=`<div class="text-sm opacity-70">Sin entradas.</div>`; return; }
+      if(!items.length){
+        const fmt = (iso) => iso.split('-').reverse().join('/');
+        list.innerHTML = `
+          <div class="text-sm opacity-70">
+            No hay entradas entre <strong>${fmt(from)}</strong> y <strong>${fmt(to)}</strong>.
+            Prueba cambiar a <em>Mes</em> o mover la fecha.
+          </div>`;
+        return;
+      }
 
       list.innerHTML = items.map(l=>`
         <div class="gs-card p-4">
