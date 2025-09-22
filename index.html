@@ -8,12 +8,12 @@
   <script src="https://cdn.tailwindcss.com"></script>
 
   <style>
-    /* Glass Studio con mejor contraste en Light */
+    /* Glass Studio con buen contraste en Light */
     :root{
       --bg-grad-1:#eef2f8; --bg-grad-2:#e3e9f3;
       --card-bg: rgba(255,255,255,0.75);
       --border:  rgba(15,23,42,0.10);
-      --input-bg:rgba(255,255,255,0.95);
+      --input-bg:rgba(255,255,255,0.96);
       --text:#0f172a;
     }
     .dark:root,.dark{
@@ -114,19 +114,11 @@
       <p class="text-xs opacity-70 mt-2">Solo usuarios permitidos (Eddy y Dani).</p>
     </section>
 
-    <!-- App views -->
+    <!-- App views (todas ocultas hasta router) -->
     <section id="appViews" class="space-y-6 hidden-vis">
-      <!-- Resumen -->
-      <div id="view-resumen" class="gs-card p-5">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-lg font-semibold">Resumen</h2>
-          <span class="text-xs opacity-70">v0.3</span>
-        </div>
-        <div id="resumeStats" class="grid grid-cols-1 sm:grid-cols-4 gap-4"></div>
-      </div>
+      <div id="view-resumen"  class="gs-card p-5 hidden-vis"><div class="flex items-center justify-between mb-4"><h2 class="text-lg font-semibold">Resumen</h2><span class="text-xs opacity-70">v0.3</span></div><div id="resumeStats" class="grid grid-cols-1 sm:grid-cols-4 gap-4"></div></div>
 
-      <!-- Acuerdos (igual que versión anterior) -->
-      <div id="view-acuerdos" class="gs-card p-5">
+      <div id="view-acuerdos" class="gs-card p-5 hidden-vis">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-lg font-semibold">Acuerdos</h2>
           <div class="flex items-center gap-2">
@@ -139,8 +131,7 @@
         <div id="agreementsList" class="grid gap-3"></div>
       </div>
 
-      <!-- Luces -->
-      <div id="view-luces" class="gs-card p-5">
+      <div id="view-luces" class="gs-card p-5 hidden-vis">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-lg font-semibold">Luces</h2>
           <div class="flex items-center gap-2">
@@ -153,20 +144,15 @@
         <div id="lightsList" class="grid gap-3"></div>
       </div>
 
-      <!-- Juegos (Intimidad) -->
-      <div id="view-juegos" class="gs-card p-5">
+      <div id="view-juegos" class="gs-card p-5 hidden-vis">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-lg font-semibold">Juegos</h2>
-          <div class="flex items-center gap-2">
-            <button id="addGameBtn" class="gs-btn">+ Agregar</button>
-          </div>
+          <div class="flex items-center gap-2"><button id="addGameBtn" class="gs-btn">+ Agregar</button></div>
         </div>
         <div id="gamesList" class="grid gap-3"></div>
       </div>
 
-      <!-- Ajustes -->
-      <div id="view-ajustes" class="space-y-6">
-        <!-- Contactos (igual que antes) -->
+      <div id="view-ajustes" class="space-y-6 hidden-vis">
         <div class="gs-card p-5">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-semibold">Ajustes · Contactos</h2>
@@ -182,7 +168,6 @@
           <div id="contactsList" class="grid gap-3"></div>
         </div>
 
-        <!-- Categorías Acuerdos -->
         <div class="gs-card p-5">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-semibold">Ajustes · Categorías de Acuerdos</h2>
@@ -191,7 +176,6 @@
           <div id="agreCatsList" class="grid gap-3"></div>
         </div>
 
-        <!-- Prácticas (Juegos) -->
         <div class="gs-card p-5">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-semibold">Ajustes · Prácticas</h2>
@@ -202,7 +186,7 @@
       </div>
     </section>
   </main>
-
+  
   <!-- ===== Modales ===== -->
 
   <!-- Contacto -->
@@ -335,3 +319,5 @@
   <script src="./ui.js"></script>
 </body>
 </html>
+
+
