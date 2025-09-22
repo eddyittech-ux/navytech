@@ -1,209 +1,140 @@
-/* app.js v0.4.10 — NavyTech
-   - Supabase client + Auth
+/* app.js v0.5 — NavyTech
+   - Supabase init
+   - Auth helpers
    - Servicios: contacts, agreCats, agreements, practices, locations, games, lights, goals
 */
 
 (() => {
-  // --------- Supabase ----------
-  const SUPABASE_URL = 'https://zhavnscqhsedrvokeocb.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpoYXZuc2NxaHNlZHJ2b2tlb2NiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0ODQ1MDcsImV4cCI6MjA3NDA2MDUwN30.Lace39ORNPoDb5iGz8_hlRTRhH3I1JhvD5sPKwzOiys';
+  // ===== Supabase =====
+  const SUPABASE_URL = "https://zhavnscqhsedrvokeocb.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpoYXZuc2NxaHNlZHJ2b2tlb2NiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0ODQ1MDcsImV4cCI6MjA3NDA2MDUwN30.Lace39ORNPoDb5iGz8_hlRTRhH3I1JhvD5sPKwzOiys";
 
-  const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
+  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+    }
   });
 
-  // Exponer
+  // Exponer namespace
   window.NT = window.NT || {};
   window.NT.db = client;
 
-  // --------- Auth helpers ----------
-  window.NT.auth = {
-    onAuth(cb){ client.auth.onAuthStateChange((_e, s)=> cb(s?.user||null)); },
-    async getUser(){ const { data } = await client.auth.getUser(); return data.user || null; },
-    async signIn(email, password){
-      const { data, error } = await client.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      return data.user;
-    },
-    async signOut(){ await client.auth.signOut(); }
-  };
+  // ===== Auth =====
+  async function signIn(email, password) {
+    const { data, error } = await client.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    return data.user;
+  }
+  async function signOut() {
+    const { error } = await client.auth.signOut(); if (error) throw error; return true;
+  }
+  async function getUser() {
+    const { data } = await client.auth.getUser(); return data?.user || null;
+  }
+  function onAuth(cb) {
+    client.auth.onAuthStateChange((_evt, sess)=> cb(sess?.user || null));
+  }
 
-  // --------- Servicios ----------
-  // CONTACTS
+  window.NT.auth = { signIn, signOut, getUser, onAuth };
+
+  // ===== Helpers =====
+  const selAll = async (q) => { const { data, error } = await q; if (error) throw error; return data || []; };
+  const selOne = async (q) => { const { data, error } = await q.select().single(); if (error) throw error; return data; };
+
+  // ===== Contacts =====
   window.NT.contacts = (() => {
-    const table='contacts';
-    async function listContacts({ status } = {}){
-      let q = client.from(table).select('*').order('updated_at', { ascending:false });
+    const T = 'contacts';
+    async function listContacts({ status } = {}) {
+      let q = client.from(T).select('*').order('updated_at', { ascending: false });
       if (status) q = q.eq('status', status);
-      const { data, error } = await q;
-      if (error) throw error;
-      return data || [];
+      return selAll(q);
     }
-    async function upsertContact(payload){
-      const { data, error } = await client.from(table).upsert(payload).select().single();
-      if (error) throw error;
-      return data;
-    }
-    async function deleteContact(id){
-      const { error } = await client.from(table).delete().eq('id', id);
-      if (error) throw error;
-      return true;
-    }
+    async function upsertContact(payload) { return selOne(client.from(T).upsert(payload)); }
+    async function deleteContact(id) { const { error } = await client.from(T).delete().eq('id', id); if (error) throw error; return true; }
     return { listContacts, upsertContact, deleteContact };
   })();
 
-  // AGREEMENT CATEGORIES
+  // ===== Agreement Categories =====
   window.NT.agreCats = (() => {
-    const table='agreement_categories';
-    async function listAgreementCategories({ onlyActive=false } = {}){
-      let q = client.from(table).select('*').order('label', { ascending:true });
+    const T='agreement_categories';
+    async function listAgreementCategories({ onlyActive } = {}) {
+      let q = client.from(T).select('*').order('label', { ascending: true });
       if (onlyActive) q = q.eq('active', true);
-      const { data, error } = await q;
-      if (error) throw error;
-      return data || [];
+      return selAll(q);
     }
-    async function upsertAgreCat(payload){
-      const { data, error } = await client.from(table).upsert(payload).select().single();
-      if (error) throw error;
-      return data;
-    }
-    async function deleteAgreCat(key){
-      const { error } = await client.from(table).delete().eq('key', key);
-      if (error) throw error;
-      return true;
-    }
-    return { listAgreementCategories, upsertAgreCat, deleteAgreCat };
+    return { listAgreementCategories };
   })();
 
-  // AGREEMENTS
+  // ===== Agreements =====
   window.NT.agreements = (() => {
-    const table='agreements';
-    async function listAgreements({ status } = {}){
-      let q = client.from(table).select('*').order('created_on', { ascending:false });
+    const T='agreements';
+    async function listAgreements({ status } = {}) {
+      let q = client.from(T).select('*').order('created_on', { ascending: false });
       if (status) q = q.eq('status', status);
-      const { data, error } = await q;
-      if (error) throw error;
-      return data || [];
+      return selAll(q);
     }
-    async function upsertAgreement(payload){
-      const { data, error } = await client.from(table).upsert(payload).select().single();
-      if (error) throw error;
-      return data;
-    }
-    async function deleteAgreement(id){
-      const { error } = await client.from(table).delete().eq('id', id);
-      if (error) throw error;
-      return true;
-    }
+    async function upsertAgreement(payload){ return selOne(client.from(T).upsert(payload)); }
+    async function deleteAgreement(id){ const { error } = await client.from(T).delete().eq('id', id); if (error) throw error; return true; }
     return { listAgreements, upsertAgreement, deleteAgreement };
   })();
 
-  // PRACTICES
+  // ===== Practices =====
   window.NT.practices = (() => {
-    const table='practices';
-    async function listPractices({ onlyActive=false } = {}){
-      let q = client.from(table).select('*').order('label', { ascending:true });
+    const T='practices';
+    async function listPractices({ onlyActive } = {}) {
+      let q = client.from(T).select('*').order('label', { ascending: true });
       if (onlyActive) q = q.eq('active', true);
-      const { data, error } = await q;
-      if (error) throw error;
-      return data || [];
+      return selAll(q);
     }
-    async function upsertPractice(payload){
-      const { data, error } = await client.from(table).upsert(payload).select().single();
-      if (error) throw error;
-      return data;
-    }
-    async function deletePractice(key){
-      const { error } = await client.from(table).delete().eq('key', key);
-      if (error) throw error;
-      return true;
-    }
+    async function upsertPractice(payload){ return selOne(client.from(T).upsert(payload)); }
+    async function deletePractice(key){ const { error } = await client.from(T).delete().eq('key', key); if (error) throw error; return true; }
     return { listPractices, upsertPractice, deletePractice };
   })();
 
-  // LOCATIONS (para juegos; se puede almacenar como tabla simple)
+  // ===== Locations (for juegos) =====
   window.NT.locations = (() => {
-    const table='locations';
-    async function listLocations(){
-      const { data, error } = await client.from(table).select('*').order('name',{ascending:true});
-      if (error && error.code !== '42P01') return []; // por si no existe la tabla
-      return data || [];
-    }
+    const T='locations';
+    async function listLocations(){ try { return await selAll(client.from(T).select('*').order('name', { ascending: true })); } catch { return []; } }
     return { listLocations };
   })();
 
-  // GAMES
+  // ===== Games =====
   window.NT.games = (() => {
-    const table='games';
-    async function listGames(){
-      const { data, error } = await client.from(table).select('*').order('played_on',{ascending:false});
-      if (error) throw error;
-      return data || [];
-    }
-    async function upsertGame(payload){
-      const { data, error } = await client.from(table).upsert(payload).select().single();
-      if (error) throw error;
-      return data;
-    }
-    async function deleteGame(id){
-      const { error } = await client.from(table).delete().eq('id', id);
-      if (error) throw error;
-      return true;
-    }
+    const T='games';
+    async function listGames(){ return selAll(client.from(T).select('*').order('played_on',{ascending:false})); }
+    async function upsertGame(payload){ return selOne(client.from(T).upsert(payload)); }
+    async function deleteGame(id){ const { error } = await client.from(T).delete().eq('id', id); if (error) throw error; return true; }
     return { listGames, upsertGame, deleteGame };
   })();
 
-  // LIGHTS
+  // ===== Lights =====
   window.NT.lights = (() => {
-    const table='lights';
-    async function listLights({ from, to } = {}){
-      let q = client.from(table).select('*').order('light_on', { ascending:false });
+    const T='lights';
+    async function listLights({ from, to } = {}) {
+      let q = client.from(T).select('*').order('light_on', { ascending:false });
       if (from) q = q.gte('light_on', from);
       if (to)   q = q.lte('light_on', to);
-      const { data, error } = await q;
-      if (error) throw error;
-      return data || [];
+      return selAll(q);
     }
-    async function upsertLight(payload){
-      const { data, error } = await client.from(table).upsert(payload).select().single();
-      if (error) throw error;
-      return data;
-    }
-    async function deleteLight(id){
-      const { error } = await client.from(table).delete().eq('id', id);
-      if (error) throw error;
-      return true;
-    }
+    async function upsertLight(payload){ return selOne(client.from(T).upsert(payload)); }
+    async function deleteLight(id){ const { error } = await client.from(T).delete().eq('id', id); if (error) throw error; return true; }
     return { listLights, upsertLight, deleteLight };
   })();
 
-  // GOALS (METAS)
+  // ===== Goals =====
   window.NT.goals = (() => {
-    const table='goals';
-    async function listGoals({ promoter, status } = {}){
-      let q = client.from(table).select('*').order('deadline',{ascending:true});
-      if (promoter && promoter !== 'Todos') q = q.eq('promoter', promoter);
-      if (status && status !== 'todas') q = q.eq('status', status);
-      const { data, error } = await q;
-      if (error) throw error;
-      return data || [];
+    const T='goals';
+    async function listGoals({ promoter, status } = {}) {
+      let q = client.from(T).select('*').order('deadline',{ascending:true});
+      if (promoter && promoter!=='Todos') q = q.eq('promoter', promoter);
+      if (status && status!=='todas') q = q.eq('status', status);
+      return selAll(q);
     }
-    async function upsertGoal(payload){
-      const { data, error } = await client.from(table).upsert(payload).select().single();
-      if (error) throw error;
-      return data;
-    }
-    async function deleteGoal(id){
-      const { error } = await client.from(table).delete().eq('id', id);
-      if (error) throw error;
-      return true;
-    }
+    async function upsertGoal(payload){ return selOne(client.from(T).upsert(payload)); }
+    async function deleteGoal(id){ const { error } = await client.from(T).delete().eq('id', id); if (error) throw error; return true; }
     return { listGoals, upsertGoal, deleteGoal };
   })();
 
-  // logout btn
-  document.addEventListener('DOMContentLoaded', () => {
-    const btn = document.getElementById('logoutBtn');
-    btn?.addEventListener('click', async () => { await window.NT.auth.signOut(); location.hash = '#/resumen'; location.reload(); });
-  });
 })();
