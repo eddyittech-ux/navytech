@@ -1,37 +1,26 @@
-/* ui.js v0.5.0 — NavyTech
-   - Login robusto (fallback, reintentos)
-   - Tema sol/luna
-   - Router (default: Resumen)
-   - Resumen compacto + sparklines
-   - Contactos / Acuerdos / Prácticas / Juegos / Luces / Metas
-   - Filtro "Quién" en Luces
-   - Mapa de caritas AMPLIADO y alineado con DB
+/* ui.js v0.5.2 — NavyTech UI
+   - Tema (sol/luna) estable
+   - Router por hash
+   - Login robusto
+   - Resumen real
+   - Luces con filtros (rango + quién) y modal
+   - Ajustes Contactos/Prácticas básicos
 */
 (() => {
-  // ===== Utils =====
-  const onReady = (fn) =>
-    document.readyState === "loading"
-      ? document.addEventListener("DOMContentLoaded", fn)
-      : fn();
-  const qs = (sel, el = document) => el.querySelector(sel);
-  const qsa = (sel, el = document) => [...el.querySelectorAll(sel)];
-  const $$ = (el, show = true) => el && el.classList.toggle("hidden-vis", !show);
-  const esc = (s = "") =>
-    String(s).replace(/[&<>"'`=\/]/g, (c) =>
-      ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;",
-        "/": "&#x2F;",
-        "`": "&#x60;",
-        "=": "&#x3D;",
-      }[c])
-    );
+  // ---------- helpers ----------
+  const onReady = (fn) => (document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', fn) : fn());
+  const qs  = (s,el=document)=>el.querySelector(s);
+  const qsa = (s,el=document)=>[...el.querySelectorAll(s)];
+  const $$  = (el,show=true)=> el && (el.classList.toggle('hidden-vis', !show), el);
+  const esc = (s='') => String(s).replace(/[&<>"'`=\/]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D;'}[c]));
+  const toast = (msg,type='info')=>{
+    const host = qs('#toastHost'); const d = document.createElement('div');
+    d.className = `gs-card px-4 py-2 text-sm border-l-4 ${type==='error'?'border-red-400':type==='success'?'border-emerald-400':'border-[#C7A740]'}`;
+    d.textContent = msg; host.appendChild(d); setTimeout(()=>d.remove(),3200);
+  };
 
-  // ===== THEME =====
-  const THEME_KEY = "nt-theme";
+  // ---------- tema ----------
+  const THEME_KEY='nt-theme';
   const iconSun = () => `
     <circle cx="12" cy="12" r="4" stroke-width="1.6"></circle>
     <g stroke-width="1.6" stroke-linecap="round">
@@ -39,299 +28,154 @@
       <path d="M4.2 4.2l1.4 1.4"/><path d="M18.4 18.4l1.4 1.4"/>
       <path d="M19.8 4.2l-1.4 1.4"/><path d="M5.6 18.4l-1.4 1.4"/>
     </g>`;
-  const iconMoon = () =>
-    `<path d="M20 13a8 8 0 1 1-9-9 6 6 0 0 0 9 9z" stroke-width="1.6" fill="none"></path>`;
-  function setThemeIcon(theme) {
-    const svg = qs("#themeIcon");
-    if (svg) svg.innerHTML = theme === "dark" ? iconMoon() : iconSun();
-  }
-  function applyTheme(t) {
-    document.documentElement.classList.toggle("dark", t === "dark");
-    localStorage.setItem(THEME_KEY, t);
-    setThemeIcon(t);
-  }
-  function initTheme() {
-    const saved =
-      localStorage.getItem(THEME_KEY) ||
-      (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-    applyTheme(saved);
-  }
-  onReady(() => {
-    qs("#themeToggle")?.addEventListener("click", () => {
-      const cur = document.documentElement.classList.contains("dark")
-        ? "dark"
-        : "light";
-      applyTheme(cur === "dark" ? "light" : "dark");
-    });
-  });
+  const iconMoon = () => `<path d="M20 13a8 8 0 1 1-9-9 6 6 0 0 0 9 9z" stroke-width="1.6" fill="none"></path>`;
+  function setThemeIcon(t){ const s=qs('#themeIcon'); if(s) s.innerHTML = (t==='dark'?iconMoon():iconSun()); }
+  function applyTheme(t){ document.documentElement.classList.toggle('dark', t==='dark'); localStorage.setItem(THEME_KEY,t); setThemeIcon(t); }
+  function initTheme(){ const saved=localStorage.getItem(THEME_KEY) || (matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'); applyTheme(saved); }
+  onReady(()=> qs('#themeToggle')?.addEventListener('click',()=>{
+    const cur = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+    applyTheme(cur==='dark'?'light':'dark');
+  }));
 
-  // ===== Toast =====
-  function toast(msg, type = "info") {
-    const host = qs("#toastHost") || document.body;
-    const el = document.createElement("div");
-    el.className = `gs-card px-4 py-2 text-sm border-l-4 ${
-      type === "error"
-        ? "border-red-400"
-        : type === "success"
-        ? "border-emerald-400"
-        : "border-[#C7A740]"
-    }`;
-    el.textContent = msg;
-    host.appendChild(el);
-    setTimeout(() => el.remove(), 3200);
-  }
-
-  // ===== Router =====
-  function getViews() {
-    return {
-      resumen: qs("#view-resumen"),
-      acuerdos: qs("#view-acuerdos"),
-      metas: qs("#view-metas"),
-      luces: qs("#view-luces"),
-      juegos: qs("#view-juegos"),
-      ajustes: qs("#view-ajustes"),
-    };
-  }
-  function highlightActiveNav() {
-    const key = (location.hash || "#/resumen").replace("#/", "");
-    qsa("#mainNav .nav-link").forEach((a) => {
-      const href = a.getAttribute("href").replace("#/", "");
-      a.classList.toggle("active", href === key);
+  // ---------- router ----------
+  function views(){ return {
+    resumen: qs('#view-resumen'),
+    luces: qs('#view-luces'),
+    juegos: qs('#view-juegos'),
+    acuerdos: qs('#view-acuerdos'),
+    metas: qs('#view-metas'),
+    ajustes: qs('#view-ajustes'),
+  }; }
+  function highlightNav(){
+    const key=(location.hash||'#/resumen').replace('#/','');
+    qsa('#mainNav .nav-link').forEach(a=>{
+      const h = a.getAttribute('href').replace('#/','');
+      a.classList.toggle('bg-white/10', h===key);
     });
   }
-  function showView(name) {
-    const views = getViews();
-    Object.entries(views).forEach(([k, el]) => $$(el, k === name));
-    if (name === "ajustes") {
-      renderContacts();
-      // proteger si no existe
-      if (typeof renderAgreCats === "function") renderAgreCats();
-      renderPractices();
-    }
-    if (name === "resumen") renderResumen();
-    if (name === "acuerdos") renderAgreements();
-    if (name === "juegos") renderGames();
-    if (name === "luces") renderLightsInit();
-    if (name === "metas") renderGoals();
-    highlightActiveNav();
+  function showView(name){
+    const v=views();
+    Object.entries(v).forEach(([k,el])=> $$(el, k===name));
+    highlightNav();
+    if(name==='resumen') renderResumen();
+    if(name==='luces')   renderLightsInit();
+    if(name==='ajustes'){ renderContacts(); renderPractices(); }
+    if(name==='juegos')  renderGames();
+    if(name==='acuerdos') renderAgreements();
+    if(name==='metas') renderGoals();
   }
-  function parseRoute() {
-    if (!location.hash) location.hash = "#/resumen";
-    const key = (location.hash || "#/resumen").replace("#/", "");
-    const views = getViews();
-    if (!views[key]) return showView("resumen");
-    showView(key);
+  function parseRoute(){
+    if(!location.hash) location.hash='#/resumen';
+    const k=(location.hash||'#/resumen').replace('#/','');
+    const v=views(); if(!v[k]) return showView('resumen'); showView(k);
   }
-  onReady(() => window.addEventListener("hashchange", parseRoute));
+  onReady(()=> window.addEventListener('hashchange', parseRoute));
 
-  // ===== AUTH =====
-  const authCard = () => qs("#authCard");
-  const appViews = () => qs("#appViews");
-  async function refreshAuthUI(user) {
+  // ---------- auth ----------
+  async function refreshAuthUI(user){
     const logged = !!user;
-    $$(authCard(), !logged);
-    $$(appViews(), logged);
-    $$(qs("#mainNav"), logged);
-    $$(qs("#authActions"), logged);
-    const tip = qs("#userTooltip");
-    if (tip) tip.textContent = logged ? user.email || "" : "";
-    if (logged) {
-      if (!location.hash) location.hash = "#/resumen";
-      parseRoute();
-    }
+    $$(qs('#authCard'), !logged);
+    $$(qs('#appViews'), logged);
+    $$(qs('#mainNav'), logged);
+    $$(qs('#authActions'), logged);
+    const tip = qs('#userTooltip'); if(tip) tip.title = logged ? (user.email||'') : '';
+    if(logged){ if(!location.hash) location.hash='#/resumen'; parseRoute(); }
   }
-  function attachLoginHandlers(attempt = 0) {
-    const form = qs("#loginForm");
-    const btn = qs("#loginBtn");
-    if (!form || !btn) {
-      if (attempt < 20) return setTimeout(() => attachLoginHandlers(attempt + 1), 100);
-      return;
-    }
-    if (form.__bound) return;
-    form.__bound = true;
-    form.addEventListener("submit", async (e) => {
+  function attachLoginHandlers(){
+    const form=qs('#loginForm'), btn=qs('#loginBtn');
+    if(!form||!btn) return;
+    form.addEventListener('submit', async (e)=>{
       e.preventDefault();
-      await doLogin();
+      const email=qs('#emailInput').value.trim(), password=qs('#passwordInput').value;
+      if(!email||!password) return toast('Completa email y password','error');
+      try{
+        btn.disabled=true; btn.textContent='Entrando…';
+        const u = await window.NT.auth.signIn(email,password);
+        toast('Sesión iniciada','success'); await refreshAuthUI(u);
+      }catch(err){ console.error(err); toast(err.message||'No se pudo iniciar','error'); }
+      finally{ btn.disabled=false; btn.textContent='Entrar'; }
     });
   }
-  async function doLogin() {
-    const email = qs("#emailInput")?.value?.trim();
-    const password = qs("#passwordInput")?.value || "";
-    const btn = qs("#loginBtn");
-    if (!email || !password) return toast("Completa email y password", "error");
-    try {
-      btn.disabled = true;
-      btn.textContent = "Entrando…";
-      const user = await window.NT.auth.signIn(email, password);
-      toast("Sesión iniciada", "success");
-      await refreshAuthUI(user);
-    } catch (err) {
-      console.error(err);
-      toast(err.message || "No se pudo iniciar sesión", "error");
-    } finally {
-      btn.disabled = false;
-      btn.textContent = "Entrar";
-    }
-  }
-  onReady(async () => {
-    attachLoginHandlers();
-    window.NT?.auth?.onAuth?.((u) => refreshAuthUI(u));
-    const u = await window.NT?.auth?.getUser()?.catch(() => null);
+  onReady(async ()=>{
+    initTheme(); attachLoginHandlers();
+    window.NT?.auth?.onAuth?.((u)=>refreshAuthUI(u));
+    const u = await window.NT?.auth?.getUser()?.catch(()=>null);
     refreshAuthUI(u);
   });
-  // fallback del botón
-  window.NT = window.NT || {};
-  window.NT.ui = window.NT.ui || {};
-  window.NT.ui.tryLogin = doLogin;
+  qs('#logoutBtn')?.addEventListener('click', async ()=>{
+    try{ await window.NT.auth.signOut(); location.hash='#/resumen'; location.reload(); }catch{}
+  });
 
-  // ===== Flatpickr helper (default hoy) =====
-  function fp(el) {
-    if (!el) return null;
-    return flatpickr(el, {
-      altInput: true,
-      altFormat: "d/m/Y",
-      dateFormat: "Y-m-d",
-      defaultDate: new Date(),
-      allowInput: true,
-    });
-  }
-  let fpAgreement, fpGame, fpLight, fpLightsStart;
+  // ---------- flatpickr ----------
+  function makeFP(el){ return el && flatpickr(el,{ altInput:true, altFormat:"d/m/Y", dateFormat:"Y-m-d", defaultDate:new Date(), allowInput:true }); }
 
-  // ===== RESUMEN (limpio) =====
-  async function renderResumen() {
-    const wrap = qs("#resumeStats");
-    if (!wrap) return;
-    wrap.innerHTML = `<div class="text-sm opacity-70">Cargando...</div>`;
-    try {
+  // ---------- RESUMEN ----------
+  async function renderResumen(){
+    const wrap=qs('#resumeStats'); if(!wrap) return;
+    wrap.innerHTML='<div class="text-sm opacity-70">Cargando…</div>';
+    try{
       const [agreements, games] = await Promise.all([
         window.NT.agreements.listAgreements({}),
-        window.NT.games.listGames(),
+        window.NT.games.listGames()
       ]);
 
-      const RESTART_ISO = "2025-09-14";
-      const diffDays = Math.floor(
-        (Date.now() - new Date(RESTART_ISO).getTime()) / 86400000
-      );
+      // días desde reinicio
+      const RESTART='2025-09-14';
+      const diffDays = Math.floor((Date.now() - new Date(RESTART).getTime())/86400000);
 
-      const eddyActive = games.filter((g) => g.role === "Eddy→Dani").length;
-      const daniActive = games.filter((g) => g.role === "Dani→Eddy").length;
-      const totalGames = games.length;
+      // juegos / roles
+      const eddyActive = games.filter(g=>g.role==='Eddy→Dani').length;
+      const daniActive = games.filter(g=>g.role==='Dani→Eddy').length;
 
-      const avg = (arr) =>
-        arr.length
-          ? arr.reduce((a, b) => a + (+b.satisfaction || 0), 0) / arr.length
-          : 0;
-      const now = new Date();
-      const mAgo = new Date(now);
-      mAgo.setMonth(now.getMonth() - 1);
-      const wAgo = new Date(now);
-      wAgo.setDate(now.getDate() - 7);
+      // satisfacción
+      const monthAgo = new Date(); monthAgo.setMonth(monthAgo.getMonth()-1);
+      const weekAgo  = new Date(); weekAgo.setDate(weekAgo.getDate()-7);
+      const avg = (arr)=> arr.length ? arr.reduce((a,b)=>a+(Number(b.satisfaction)||0),0)/arr.length : 0;
       const avgTotal = avg(games);
-      const avgMonth = avg(games.filter((g) => new Date(g.played_on) >= mAgo));
-      const avgWeek = avg(games.filter((g) => new Date(g.played_on) >= wAgo));
+      const avgMonth = avg(games.filter(g=> new Date(g.played_on)>=monthAgo));
+      const avgWeek  = avg(games.filter(g=> new Date(g.played_on)>=weekAgo));
 
-      const aprob = agreements.filter((a) => a.status === "Aprobado").length;
-      const pend = agreements.filter((a) => a.status === "Pendiente").length;
+      // acuerdos
+      const aprob = agreements.filter(a=>a.status==='Aprobado').length;
+      const pend  = agreements.filter(a=>a.status==='Pendiente').length;
 
-      const emoScore = {
-        feliz: 2,
-        muy_feliz: 3,
-        emocionado: 3,
-        agradecido: 2,
-        confiado: 2,
-        aliviado: 1,
-        meh: 0,
-        cansado: -1,
-        nervioso: -1,
-        triste: -2,
-        muy_triste: -3,
-        frustrado: -2,
-        estresado: -2,
-        ansioso: -2,
-        furioso: -3,
+      const gauge = (value=7, size=70)=>{
+        const pct=Math.max(1,Math.min(10,Number(value)))/10; const r=size/2-8, cx=size/2, cy=size/2, C=2*Math.PI*r, dash=(C*pct).toFixed(1);
+        const color=`hsl(${Math.round(120*pct)},70%,45%)`;
+        return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+          <circle cx="${cx}" cy="${cy}" r="${r}" stroke="#e5e7eb" stroke-width="9" fill="none"/>
+          <circle cx="${cx}" cy="${cy}" r="${r}" stroke="${color}" stroke-width="9" fill="none" stroke-dasharray="${dash} ${C}" stroke-linecap="round" transform="rotate(-90 ${cx} ${cy})"/>
+          <text x="${cx}" y="${cy+5}" text-anchor="middle" font-size="${size/3.2}" font-weight="700">${(value||0).toFixed(1)}</text>
+        </svg>`;
       };
-      const sixty = new Date(now);
-      sixty.setDate(now.getDate() - 60);
-      const lights = await window.NT.lights.listLights({
-        from: sixty.toISOString().slice(0, 10),
-        to: now.toISOString().slice(0, 10),
-      });
-      const series = (who) => {
-        const map = new Map();
-        lights
-          .filter((l) => l.who === who)
-          .forEach((l) => {
-            const d = l.light_on,
-              s = emoScore[l.emotion] ?? 0,
-              v = map.get(d) || { s: 0, n: 0 };
-            v.s += s;
-            v.n++;
-            map.set(d, v);
-          });
-        return [...map.keys()].sort().map((d) => map.get(d).s / map.get(d).n);
-      };
-      const sparkline = (vals, color = "#163054", w = 520, h = 60) => {
-        if (!vals.length) return `<div class="text-xs opacity-70">Sin datos.</div>`;
-        const min = Math.min(...vals, -3),
-          max = Math.max(...vals, 3),
-          pad = 6,
-          step = (w - 2 * pad) / Math.max(1, vals.length - 1);
-        const pts = vals
-          .map(
-            (v, i) =>
-              `${(pad + i * step).toFixed(1)},${(
-                h -
-                pad -
-                ((v - min) / (max - min || 1)) * (h - 2 * pad)
-              ).toFixed(1)}`
-          )
-          .join(" ");
-        return `<svg width="${w}" height="${h}"><polyline fill="none" stroke="${color}" stroke-width="2" points="${pts}"/></svg>`;
-      };
-
-      const eddySeries = series("Eddy");
-      const daniSeries = series("Dani");
-
-      const gauge = (value = 7, size = 80) => {
-        const pct = Math.max(1, Math.min(10, Number(value))) / 10,
-          r = size / 2 - 8,
-          C = 2 * Math.PI * r,
-          dash = (C * pct).toFixed(1);
-        const color = `hsl(${Math.round(120 * pct)},70%,45%)`;
-        return `<svg width="${size}" height="${size}"><circle cx="${size / 2}" cy="${
-          size / 2
-        }" r="${r}" stroke="#e5e7eb" stroke-width="10" fill="none"/>
-        <circle cx="${size / 2}" cy="${size / 2}" r="${r}" stroke="${color}" stroke-width="10" fill="none" stroke-dasharray="${dash} ${C}" stroke-linecap="round" transform="rotate(-90 ${size / 2} ${
-          size / 2
-        })"/>
-        <text x="${size / 2}" y="${
-          size / 2 + 6
-        }" text-anchor="middle" font-weight="700">${(value || 0).toFixed(
-          1
-        )}</text></svg>`;
-      };
-
-      const eddyColor = "#3F3D8F",
-        daniColor = "#163054",
-        gold = "#C7A740";
 
       wrap.innerHTML = `
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
-          <div class="gs-card p-4 flex items-center justify-between col-span-1 lg:col-span-2">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="gs-card p-4 col-span-1 lg:col-span-2 flex items-center justify-between">
             <div>
               <div class="text-xs opacity-70">Días desde reinicio</div>
-              <div class="text-4xl font-extrabold" style="color:${gold}">${diffDays}</div>
+              <div class="text-4xl font-extrabold text-yellow-400">${diffDays}</div>
               <div class="text-xs opacity-70">Iniciado el 14/09/2025</div>
             </div>
-            <div class="text-xs opacity-70">v0.4</div>
+            <div class="text-xs opacity-50">v0.5</div>
           </div>
 
           <div class="gs-card p-4">
             <div class="text-xs opacity-70">Juegos</div>
-            <div class="text-3xl font-bold">${totalGames}</div>
+            <div class="text-3xl font-bold">${games.length}</div>
             <div class="flex gap-2 mt-2 items-center text-xs">
-              <span class="gs-chip" style="border-color:${daniColor}; color:${daniColor}">Eddy activo: ${eddyActive}</span>
-              <span class="gs-chip" style="border-color:${eddyColor}; color:${eddyColor}">Dani activo: ${daniActive}</span>
+              <span class="gs-chip text-blue-600 dark:text-blue-300">Eddy activo: ${eddyActive}</span>
+              <span class="gs-chip text-indigo-600 dark:text-indigo-300">Dani activo: ${daniActive}</span>
+            </div>
+          </div>
+
+          <div class="gs-card p-4 flex items-center justify-between">
+            <div>
+              <div class="text-xs opacity-70">Satisfacción</div>
+              <div class="text-xs opacity-70 mt-1">Total · Mes · Semana</div>
+            </div>
+            <div class="flex gap-2 items-center">
+              ${gauge(avgTotal)} ${gauge(avgMonth)} ${gauge(avgWeek)}
             </div>
           </div>
 
@@ -342,1030 +186,227 @@
               <div class="text-sm text-red-500">Pend: ${pend}</div>
             </div>
           </div>
-
-          <div class="gs-card p-4 col-span-1 lg:col-span-2 flex items-center justify-between">
-            <div>
-              <div class="text-xs opacity-70">Satisfacción</div>
-              <div class="text-xs opacity-70 mt-1">Total · Mes · Semana</div>
-            </div>
-            <div class="flex gap-3 items-center">
-              ${gauge(avgTotal, 70)} ${gauge(avgMonth, 70)} ${gauge(avgWeek, 70)}
-            </div>
-          </div>
-
-          <div class="gs-card p-4 col-span-1 lg:col-span-2">
-            <div class="text-sm font-medium" style="color:${eddyColor}">Emociones · Eddy (60d)</div>
-            <div class="mt-2">${sparkline(eddySeries, eddyColor, 520, 60)}</div>
-          </div>
-
-          <div class="gs-card p-4 col-span-1 lg:col-span-2">
-            <div class="text-sm font-medium" style="color:${daniColor}">Emociones · Dani (60d)</div>
-            <div class="mt-2">${sparkline(daniSeries, daniColor, 520, 60)}</div>
-          </div>
         </div>`;
-    } catch (e) {
-      console.error(e);
-      wrap.innerHTML = `<div class="text-sm text-red-300">No se pudo cargar</div>`;
+    }catch(e){
+      console.error(e); wrap.innerHTML='<div class="text-sm text-red-300">No se pudo cargar</div>';
     }
   }
 
-  // ===== CONTACTOS =====
-  const filterStatus = qs("#filterStatus"),
-    addFab = qs("#addContactFab"),
-    contactsList = qs("#contactsList");
-  const contactModal = qs("#contactModal"),
-    modalTitle = qs("#modalTitle"),
-    deleteBtn = qs("#deleteBtn"),
-    contactForm = qs("#contactForm");
-  const idInput = qs("#contactId"),
-    ownerInput = qs("#ownerInput"),
-    nameInput = qs("#nameInput"),
-    aliasInput = qs("#aliasInput"),
-    categoryInput = qs("#categoryInput"),
-    statusInput = qs("#statusInput"),
-    treatmentInput = qs("#treatmentInput"),
-    notesInput = qs("#notesInput");
-  filterStatus?.addEventListener("change", renderContacts);
-  addFab?.addEventListener("click", () => openContactModal());
-  async function renderContacts() {
-    if (!contactsList) return;
-    contactsList.innerHTML = `<div class="text-sm opacity-70">Cargando...</div>`;
-    try {
-      const status = filterStatus?.value || undefined;
-      const items = await window.NT.contacts.listContacts({ status });
-      if (!items.length) {
-        contactsList.innerHTML = `<div class="text-sm opacity-70">Sin contactos.</div>`;
-        return;
-      }
-      contactsList.innerHTML = items
-        .map(
-          (c) => `<div class="gs-card p-4 flex items-start justify-between">
-        <div class="flex items-start gap-3">
-          <div class="w-9 h-9 rounded-xl" style="${
-            c.owner === "Dani"
-              ? "background:linear-gradient(135deg,#163054,#334155)"
-              : "background:linear-gradient(135deg,#3F3D8F,#334155)"
-          }"></div>
-          <div>
-            <div class="font-medium">${esc(
-              c.alias ? `${c.name} · ${c.alias}` : c.name || "—"
-            )}</div>
-            <div class="text-xs opacity-70">${esc(c.owner || "")} · ${esc(
-            c.category || ""
-          )}</div>
-            ${
-              c.treatment
-                ? `<div class="mt-1 text-xs"><span class="gs-chip">${esc(
-                    c.treatment
-                  )}</span></div>`
-                : ""
-            }
-            ${c.notes ? `<div class="mt-2 text-xs opacity-80">${esc(c.notes)}</div>` : ""}
-          </div>
-        </div>
-        <div class="flex items-center gap-2">
-          <button class="gs-btn" data-edit="${c.id}" title="Editar">
-            <svg class="icon-sm" viewBox="0 0 24 24" fill="none"><path d="M4 20h4l10-10-4-4L4 16v4Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-          </button>
-          <button class="gs-btn" data-del="${c.id}" title="Borrar">
-            <svg class="icon-sm" viewBox="0 0 24 24" fill="none"><path d="M6 7h12M10 11v6M14 11v6M9 7l1-2h4l1 2M7 7l1 12h8l1-12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-          </button>
-        </div>
-      </div>`
-        )
-        .join("");
-      qsa("[data-edit]").forEach((b) =>
-        b.addEventListener("click", () => {
-          const id = b.getAttribute("data-edit");
-          const it = items.find((x) => x.id === id);
-          openContactModal(it);
-        })
-      );
-      qsa("[data-del]").forEach((b) =>
-        b.addEventListener("click", async () => {
-          const id = b.getAttribute("data-del");
-          if (!confirm("¿Eliminar contacto?")) return;
-          try {
-            await window.NT.contacts.deleteContact(id);
-            toast("Eliminado", "success");
-            renderContacts();
-            renderResumen();
-          } catch (e) {
-            console.error(e);
-            toast("Error al eliminar", "error");
-          }
-        })
-      );
-    } catch (e) {
-      console.error(e);
-      contactsList.innerHTML = `<div class="text-sm text-red-300">Error al cargar</div>`;
-    }
-  }
-  function openContactModal(item = null) {
-    if (!contactModal) return;
-    modalTitle.textContent = item ? "Editar contacto" : "Nuevo contacto";
-    $$(deleteBtn, !!item);
-    idInput.value = item?.id || "";
-    ownerInput.value = item?.owner || "Eddy";
-    nameInput.value = item?.name || "";
-    aliasInput.value = item?.alias || "";
-    categoryInput.value = item?.category || "Verde";
-    statusInput.value = item?.status || "";
-    treatmentInput.value = item?.treatment || "";
-    notesInput.value = item?.notes || "";
-    contactModal.showModal();
-  }
-  qs("#closeModal")?.addEventListener("click", () => contactModal?.close());
-  deleteBtn?.addEventListener("click", async () => {
-    const id = idInput.value;
-    if (!id) return;
-    if (!confirm("¿Eliminar contacto?")) return;
-    try {
-      await window.NT.contacts.deleteContact(id);
-      contactModal.close();
-      toast("Eliminado", "success");
-      renderContacts();
-      renderResumen();
-    } catch (e) {
-      console.error(e);
-      toast("Error al eliminar", "error");
-    }
-  });
-  contactForm?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    if (!nameInput.value.trim()) return toast("Nombre es obligatorio", "error");
-    try {
-      const payload = {
-        id: idInput.value || undefined,
-        owner: ownerInput.value,
-        name: nameInput.value.trim(),
-        alias: aliasInput.value || null,
-        category: categoryInput.value || null,
-        status: statusInput.value || null,
-        treatment: treatmentInput.value || null,
-        notes: notesInput.value || null,
-      };
-      await window.NT.contacts.upsertContact(payload);
-      contactModal.close();
-      toast("Guardado", "success");
-      renderContacts();
-      renderResumen();
-    } catch (e) {
-      console.error(e);
-      toast(`Error al guardar: ${e.message}`, "error");
-    }
-  });
+  // ---------- LUCES ----------
+  let fpLight, fpLightsStart;
+  const EMOTIONS = [
+    'feliz','muy_feliz','emocionado','agradecido','confiado','aliviado',
+    'meh','cansado','nervioso',
+    'triste','muy_triste','frustrado','estresado','ansioso','furioso'
+  ];
 
-  // ===== ACUERDOS =====
-  const agreFilterStatus = qs("#agreFilterStatus"),
-    addAgreementBtn = qs("#addAgreementBtn"),
-    agreementsList = qs("#agreementsList");
-  const agreementModal = qs("#agreementModal"),
-    agreementForm = qs("#agreementForm"),
-    deleteAgreementBtn = qs("#deleteAgreementBtn");
-  const agreementModalTitle = qs("#agreementModalTitle");
-  const agreementId = qs("#agreementId"),
-    agreementCategory = qs("#agreementCategory"),
-    agreementDate = qs("#agreementDate"),
-    agreementPromoter = qs("#agreementPromoter"),
-    agreementStatusRO = qs("#agreementStatusRO"),
-    agreementTitle = qs("#agreementTitle"),
-    agreementNotes = qs("#agreementNotes"),
-    eddyDecision = qs("#eddyDecision"),
-    daniDecision = qs("#daniDecision");
-  agreFilterStatus?.addEventListener("change", renderAgreements);
-  addAgreementBtn?.addEventListener("click", async () => {
-    await loadAgreementCategories(true);
-    openAgreementModal();
-  });
-  async function loadAgreementCategories(onlyActive = false) {
-    if (!agreementCategory) return;
-    const cats = await window.NT.agreCats.listAgreementCategories({
-      onlyActive,
+  function rangeFrom(type, anchor){
+    const d=new Date(anchor);
+    if(type==='week'){ const day=(d.getDay()+6)%7; d.setDate(d.getDate()-day); }
+    else { d.setDate(1); }
+    return d.toISOString().slice(0,10);
+  }
+  const colorDot = (c)=> `<span class="inline-block w-2.5 h-2.5 rounded-full" style="background:${({Rojo:'#ef4444','Ámbar':'#f59e0b',Verde:'#22c55e',Azul:'#60a5fa'})[c]||'#9ca3af'}"></span>`;
+
+  function fillEmotionSelect(sel){
+    sel.innerHTML = EMOTIONS.map(e=>`<option value="${e}">${e.replace('_',' ')}</option>`).join('');
+  }
+
+  async function renderLightsInit(){
+    const typeSel = qs('#lightsRangeType');
+    const startInp = qs('#lightsRangeStart');
+    const whoSel   = qs('#lightsWho');
+
+    if(fpLightsStart) fpLightsStart.destroy();
+    fpLightsStart = flatpickr(startInp, {
+      altInput:true, altFormat:"d/m/Y", dateFormat:"Y-m-d",
+      defaultDate: rangeFrom(typeSel.value, new Date()),
+      onChange: ()=> renderLights()
     });
-    agreementCategory.innerHTML = cats
-      .map((c) => `<option value="${esc(c.key)}">${esc(c.label)}</option>`)
-      .join("");
-  }
-  function computeStatus(e = "none", d = "none") {
-    if (e === "approve" && d === "approve") return "Aprobado";
-    if (e === "reject" && d === "reject") return "Rechazado";
-    if (e === "reject" || d === "reject") return "Pendiente";
-    return "Pendiente";
-  }
-  async function renderAgreements() {
-    if (!agreementsList) return;
-    agreementsList.innerHTML = `<div class="text-sm opacity-70">Cargando...</div>`;
-    try {
-      const status = agreFilterStatus?.value || undefined;
-      const items = await window.NT.agreements.listAgreements({ status });
-      if (!items.length) {
-        agreementsList.innerHTML = `<div class="text-sm opacity-70">Sin acuerdos.</div>`;
-        return;
-      }
-      agreementsList.innerHTML = items
-        .map(
-          (a) => `<div class="gs-card p-4 flex items-start justify-between">
-        <div>
-          <div class="font-medium">${esc(a.title)}</div>
-          <div class="text-xs opacity-70">${esc(a.category_key)} · ${esc(
-            a.promoter
-          )} · ${esc(a.created_on)}</div>
-          ${
-            a.notes
-              ? `<div class="mt-1 text-xs opacity-80">${esc(a.notes)}</div>`
-              : ""
-          }
-          <div class="mt-2 flex gap-2 text-xs">
-            <span class="gs-chip">Eddy: ${esc(a.eddy_decision)}</span>
-            <span class="gs-chip">Dani: ${esc(a.dani_decision)}</span>
-          </div>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="gs-chip">${esc(a.status)}</span>
-          <button class="gs-btn" data-edit-agre="${a.id}" title="Editar">
-            <svg class="icon-sm" viewBox="0 0 24 24" fill="none"><path d="M4 20h4l10-10-4-4L4 16v4Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-          </button>
-          <button class="gs-btn" data-del-agre="${a.id}" title="Borrar">
-            <svg class="icon-sm" viewBox="0 0 24 24" fill="none"><path d="M6 7h12M10 11v6M14 11v6M9 7l1-2h4l1 2M7 7l1 12h8l1-12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-          </button>
-        </div>
-      </div>`
-        )
-        .join("");
-      qsa("[data-edit-agre]").forEach((b) =>
-        b.addEventListener("click", async () => {
-          const id = b.getAttribute("data-edit-agre");
-          const it = items.find((x) => x.id === id);
-          await loadAgreementCategories(false);
-          openAgreementModal(it);
-        })
-      );
-      qsa("[data-del-agre]").forEach((b) =>
-        b.addEventListener("click", async () => {
-          const id = b.getAttribute("data-del-agre");
-          if (!confirm("¿Eliminar acuerdo?")) return;
-          try {
-            await window.NT.agreements.deleteAgreement(id);
-            toast("Eliminado", "success");
-            renderAgreements();
-          } catch (e) {
-            console.error(e);
-            toast("Error al eliminar", "error");
-          }
-        })
-      );
-    } catch (e) {
-      console.error(e);
-      agreementsList.innerHTML = `<div class="text-sm text-red-300">Error al cargar</div>`;
-    }
-  }
-  function openAgreementModal(item = null) {
-    if (!agreementModal) return;
-    agreementModalTitle.textContent = item ? "Editar acuerdo" : "Nuevo acuerdo";
-    $$(deleteAgreementBtn, !!item);
-    agreementId.value = item?.id || "";
-    agreementCategory.value = item?.category_key || agreementCategory.value;
-    agreementPromoter.value = item?.promoter || "Ambos";
-    agreementTitle.value = item?.title || "";
-    agreementNotes.value = item?.notes || "";
-    eddyDecision.value = item?.eddy_decision || "none";
-    daniDecision.value = item?.dani_decision || "none";
-    agreementStatusRO.value = computeStatus(
-      eddyDecision.value,
-      daniDecision.value
-    );
-    agreementModal.showModal();
-    if (fpAgreement) fpAgreement.destroy();
-    fpAgreement = fp(agreementDate);
-    if (item?.created_on) fpAgreement.setDate(item.created_on, true);
-  }
-  qs("#closeAgreementModal")?.addEventListener("click", () =>
-    agreementModal?.close()
-  );
-  eddyDecision?.addEventListener(
-    "change",
-    () => (agreementStatusRO.value = computeStatus(eddyDecision.value, daniDecision.value))
-  );
-  daniDecision?.addEventListener(
-    "change",
-    () => (agreementStatusRO.value = computeStatus(eddyDecision.value, daniDecision.value))
-  );
-  deleteAgreementBtn?.addEventListener("click", async () => {
-    const id = agreementId.value;
-    if (!id) return;
-    if (!confirm("¿Eliminar acuerdo?")) return;
-    try {
-      await window.NT.agreements.deleteAgreement(id);
-      agreementModal.close();
-      toast("Eliminado", "success");
-      renderAgreements();
-    } catch (e) {
-      console.error(e);
-      toast("Error al eliminar", "error");
-    }
-  });
-  agreementForm?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    if (!agreementTitle.value.trim())
-      return toast("El acuerdo necesita un título", "error");
-    try {
-      const payload = {
-        id: agreementId.value || undefined,
-        category_key: agreementCategory.value,
-        title: agreementTitle.value.trim(),
-        notes: agreementNotes.value || null,
-        created_on: agreementDate.value,
-        promoter: agreementPromoter.value,
-        eddy_decision: eddyDecision.value,
-        dani_decision: daniDecision.value,
-      };
-      await window.NT.agreements.upsertAgreement(payload);
-      agreementModal.close();
-      toast("Guardado", "success");
-      renderAgreements();
-    } catch (e) {
-      console.error(e);
-      toast(`Error al guardar: ${e.message}`, "error");
-    }
-  });
 
-  // ===== PRÁCTICAS =====
-  const practicesList = qs("#practicesList"),
-    addPracticeBtn = qs("#addPracticeBtn");
-  addPracticeBtn?.addEventListener("click", () => openPracticeModal());
-  function openPracticeModal(item = null) {
-    const key = item?.key || prompt("Clave (ej: oral_e2d):", item?.key || "");
-    if (!key) return;
-    const label = item?.label || prompt("Nombre visible:", item?.label || "");
-    if (!label) return;
-    const active = item?.active ?? true;
-    window.NT.practices
-      .upsertPractice({ key, label, active })
-      .then(() => {
-        toast("Guardado", "success");
-        renderPractices();
-      })
-      .catch((e) => {
-        console.error(e);
-        toast(`Error: ${e.message}`, "error");
-      });
-  }
-  async function renderPractices() {
-    if (!practicesList) return;
-    practicesList.innerHTML = `<div class="text-sm opacity-70">Cargando...</div>`;
-    try {
-      const items = await window.NT.practices.listPractices();
-      practicesList.innerHTML = items
-        .map(
-          (p) => `<div class="gs-card p-4 flex items-center justify-between">
-        <div>
-          <div class="font-medium">${esc(p.label)}</div>
-          <div class="text-xs opacity-70">key: ${esc(p.key)} · ${
-            p.active ? "Activa" : "Inactiva"
-          }</div>
-        </div>
-        <div class="flex gap-2">
-          <button class="gs-btn" data-edit-pr="${p.key}" title="Editar">
-            <svg class="icon-sm" viewBox="0 0 24 24" fill="none"><path d="M4 20h4l10-10-4-4L4 16v4Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-          </button>
-          <button class="gs-btn" data-del-pr="${p.key}" title="Borrar">
-            <svg class="icon-sm" viewBox="0 0 24 24" fill="none"><path d="M6 7h12M10 11v6M14 11v6M9 7l1-2h4l1 2M7 7l1 12h8l1-12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-          </button>
-        </div>
-      </div>`
-        )
-        .join("");
-      qsa("[data-edit-pr]").forEach((b) =>
-        b.addEventListener("click", () => {
-          const key = b.getAttribute("data-edit-pr");
-          const it = items.find((x) => x.key === key);
-          openPracticeModal(it);
-        })
-      );
-      qsa("[data-del-pr]").forEach((b) =>
-        b.addEventListener("click", async () => {
-          const key = b.getAttribute("data-del-pr");
-          if (!confirm("¿Eliminar práctica?")) return;
-          try {
-            await window.NT.practices.deletePractice(key);
-            toast("Eliminada", "success");
-            renderPractices();
-          } catch (e) {
-            console.error(e);
-            toast("Error al eliminar", "error");
-          }
-        })
-      );
-    } catch (e) {
-      console.error(e);
-      practicesList.innerHTML = `<div class="text-sm text-red-300">Error al cargar</div>`;
-    }
-  }
+    typeSel.onchange = renderLights;
+    whoSel.onchange  = renderLights;
 
-  // ===== JUEGOS =====
-  const gamesList = qs("#gamesList"),
-    addGameBtn = qs("#addGameBtn");
-  const gameModal = qs("#gameModal"),
-    gameForm = qs("#gameForm"),
-    deleteGameBtn = qs("#deleteGameBtn");
-  const gameModalTitle = qs("#gameModalTitle");
-  const gameId = qs("#gameId"),
-    gameDate = qs("#gameDate"),
-    gameKind = qs("#gameKind"),
-    gamePromoter = qs("#gamePromoter"),
-    gameCondom = qs("#gameCondom"),
-    gameRole = qs("#gameRole"),
-    gameToys = qs("#gameToys"),
-    gameToysWith = qs("#gameToysWith"),
-    gameCream = qs("#gameCream"),
-    gameLocation = qs("#gameLocation"),
-    gameSatisfaction = qs("#gameSatisfaction"),
-    gameNotes = qs("#gameNotes");
-  const locList = qs("#locList"),
-    practicesChecklist = qs("#practicesChecklist"),
-    satisfactionGauge = qs("#satisfactionGauge");
-  addGameBtn?.addEventListener("click", async () => {
-    await loadPracticesChecklist();
-    await loadLocations();
-    openGameModal();
-  });
-  function gauge(value = 7) {
-    if (!satisfactionGauge) return;
-    const pct = Math.max(1, Math.min(10, Number(value))) / 10;
-    const r = 28,
-      C = 2 * Math.PI * r,
-      dash = (C * pct).toFixed(1);
-    const color = `hsl(${Math.round(120 * pct)}, 70%, 45%)`;
-    satisfactionGauge.innerHTML = `<svg width="80" height="80" viewBox="0 0 80 80"><circle cx="40" cy="40" r="${r}" stroke="#e5e7eb" stroke-width="8" fill="none"/><circle cx="40" cy="40" r="${r}" stroke="${color}" stroke-width="8" fill="none" stroke-dasharray="${dash} ${C}" stroke-linecap="round" transform="rotate(-90 40 40)"/><text x="40" y="45" text-anchor="middle" font-size="18" fill="currentColor">${value}</text></svg>`;
-  }
-  gameSatisfaction?.addEventListener("input", () =>
-    gauge(gameSatisfaction.value)
-  );
-  gameToys?.addEventListener(
-    "change",
-    () => (gameToysWith.disabled = gameToys.value !== "true")
-  );
-  async function loadPracticesChecklist() {
-    if (!practicesChecklist) return;
-    const practices = await window.NT.practices.listPractices({
-      onlyActive: true,
-    });
-    practicesChecklist.innerHTML = practices
-      .map(
-        (p) =>
-          `<label class="flex items-center gap-2 text-sm"><input type="checkbox" value="${esc(
-            p.key
-          )}"> <span>${esc(p.label)}</span></label>`
-      )
-      .join("");
-  }
-  async function loadLocations() {
-    if (!locList) return;
-    const locs = await window.NT.locations.listLocations();
-    locList.innerHTML = locs
-      .map((l) => `<option value="${esc(l.name)}"></option>`)
-      .join("");
-  }
-  async function renderGames() {
-    if (!gamesList) return;
-    gamesList.innerHTML = `<div class="text-sm opacity-70">Cargando...</div>`;
-    try {
-      const items = await window.NT.games.listGames();
-      if (!items.length) {
-        gamesList.innerHTML = `<div class="text-sm opacity-70">Sin juegos.</div>`;
-        return;
-      }
-      gamesList.innerHTML = items
-        .map(
-          (g) => `<div class="gs-card p-4 flex items-start justify-between">
-        <div>
-          <div class="font-medium">${esc(
-            g.kind === "juego" ? "Juego" : "Mini-juego"
-          )} · ${esc(g.promoter)} · ${esc(g.played_on)}</div>
-          <div class="text-xs opacity-70">${esc(g.role)} · Condón: ${
-            g.condom ? "Sí" : "No"
-          } · Juguetes: ${g.toys ? "Sí" : "No"} ${
-            g.toys ? `· Con: ${esc(g.toys_with || "—")}` : ""
-          } · Lechita: ${esc(g.cream_inside)}</div>
-          <div class="text-xs opacity-70 mt-1">Lugar: ${esc(
-            g.location || "—"
-          )}</div>
-          ${
-            g.practices?.length
-              ? `<div class="mt-1 text-xs">${g.practices
-                  .map((p) => `<span class="gs-chip mr-1">${esc(p)}</span>`)
-                  .join("")}</div>`
-              : ""
-          }
-          ${g.notes ? `<div class="mt-2 text-xs opacity-80">${esc(
-            g.notes
-          )}</div>` : ""}
-        </div>
-        <div class="flex items-center gap-3">
-          <div>${
-            (() => {
-              const v = g.satisfaction || 1;
-              const pct = v / 10;
-              const r = 18,
-                C = 2 * Math.PI * r,
-                dash = (C * pct).toFixed(1);
-              const color = `hsl(${Math.round(120 * pct)},70%,45%)`;
-              return `<svg width="50" height="50" viewBox="0 0 50 50"><circle cx="25" cy="25" r="${r}" stroke="#e5e7eb" stroke-width="6" fill="none"/><circle cx="25" cy="25" r="${r}" stroke="${color}" stroke-width="6" fill="none" stroke-dasharray="${dash} ${C}" stroke-linecap="round" transform="rotate(-90 25 25)"/><text x="25" y="30" text-anchor="middle" font-size="12" fill="currentColor">${v}</text></svg>`;
-            })()
-          }</div>
-          <button class="gs-btn" data-edit-game="${g.id}" title="Editar">
-            <svg class="icon-sm" viewBox="0 0 24 24" fill="none"><path d="M4 20h4l10-10-4-4L4 16v4Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-          </button>
-          <button class="gs-btn" data-del-game="${g.id}" title="Borrar">
-            <svg class="icon-sm" viewBox="0 0 24 24" fill="none"><path d="M6 7h12M10 11v6M14 11v6M9 7l1-2h4l1 2M7 7l1 12h8l1-12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-          </button>
-        </div>
-      </div>`
-        )
-        .join("");
-      qsa("[data-edit-game]").forEach((b) =>
-        b.addEventListener("click", async () => {
-          const id = b.getAttribute("data-edit-game");
-          const it = items.find((x) => x.id === id);
-          await loadPracticesChecklist();
-          await loadLocations();
-          openGameModal(it);
-        })
-      );
-      qsa("[data-del-game]").forEach((b) =>
-        b.addEventListener("click", async () => {
-          const id = b.getAttribute("data-del-game");
-          if (!confirm("¿Eliminar juego?")) return;
-          try {
-            await window.NT.games.deleteGame(id);
-            toast("Eliminado", "success");
-            renderGames();
-          } catch (e) {
-            console.error(e);
-            toast("Error al eliminar", "error");
-          }
-        })
-      );
-    } catch (e) {
-      console.error(e);
-      gamesList.innerHTML = `<div class="text-sm text-red-300">Error al cargar</div>`;
-    }
-  }
-  function openGameModal(item = null) {
-    if (!gameModal) return;
-    gameModalTitle.textContent = item ? "Editar juego" : "Nuevo juego";
-    $$(deleteGameBtn, !!item);
-    gameId.value = item?.id || "";
-    gameKind.value = item?.kind || "juego";
-    gamePromoter.value = item?.promoter || "Ambos";
-    gameCondom.value = String(item?.condom ?? false);
-    gameRole.value = item?.role || "Ambos versátiles";
-    gameToys.value = String(item?.toys ?? false);
-    gameToysWith.value = item?.toys_with || "";
-    gameToysWith.disabled = gameToys.value !== "true";
-    gameCream.value = item?.cream_inside || "Ninguno";
-    gameLocation.value = item?.location || "";
-    gameSatisfaction.value = item?.satisfaction || 7;
-    gauge(gameSatisfaction.value);
-    gameNotes.value = item?.notes || "";
-    qsa("input[type=checkbox]", practicesChecklist || document).forEach(
-      (ch) => (ch.checked = !!(item?.practices || []).includes(ch.value))
-    );
-    gameModal.showModal();
-    if (fpGame) fpGame.destroy();
-    fpGame = fp(gameDate);
-    if (item?.played_on) fpGame.setDate(item.played_on, true);
-  }
-  qs("#closeGameModal")?.addEventListener("click", () => gameModal?.close());
-  deleteGameBtn?.addEventListener("click", async () => {
-    const id = gameId.value;
-    if (!id) return;
-    if (!confirm("¿Eliminar juego?")) return;
-    try {
-      await window.NT.games.deleteGame(id);
-      gameModal.close();
-      toast("Eliminado", "success");
-      renderGames();
-    } catch (e) {
-      console.error(e);
-      toast("Error al eliminar", "error");
-    }
-  });
-  gameForm?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const practices = qsa(
-      "input[type=checkbox]",
-      practicesChecklist || document
-    )
-      .filter((ch) => ch.checked)
-      .map((ch) => ch.value);
-    try {
-      const payload = {
-        id: gameId.value || undefined,
-        played_on: gameDate.value,
-        kind: gameKind.value,
-        promoter: gamePromoter.value,
-        condom: gameCondom.value === "true",
-        role: gameRole.value,
-        toys: gameToys.value === "true",
-        toys_with: gameToys.value === "true" ? gameToysWith.value || null : null,
-        cream_inside: gameCream.value,
-        location: gameLocation.value || null,
-        satisfaction: Number(gameSatisfaction.value),
-        notes: gameNotes.value || null,
-        practices,
-      };
-      await window.NT.games.upsertGame(payload);
-      gameModal.close();
-      toast("Guardado", "success");
-      renderGames();
-    } catch (e) {
-      console.error(e);
-      toast(`Error al guardar: ${e.message}`, "error");
-    }
-  });
+    qs('#addLightBtn')?.addEventListener('click',()=> openLightModal());
 
-  // ===== LUCES =====
-  const lightsList = qs("#lightsList"),
-    btnAddLight = qs("#addLightBtn"),
-    lightsStats = qs("#lightsStats"),
-    lightsRangeType = qs("#lightsRangeType"),
-    lightsRangeStart = qs("#lightsRangeStart"),
-    lightsWho = qs("#lightsWho");
-  const lightModal = qs("#lightModal"),
-    lightForm = qs("#lightForm"),
-    deleteLightBtn = qs("#deleteLightBtn");
-  const lightModalTitle = qs("#lightModalTitle"),
-    lightId = qs("#lightId"),
-    lightDate = qs("#lightDate"),
-    lightColor = qs("#lightColor"),
-    lightWho = qs("#lightWho"),
-    lightEmotion = qs("#lightEmotion"),
-    lightAction = qs("#lightAction"),
-    lightNotes = qs("#lightNotes");
-
-  function rangeFrom(type, anchor) {
-    const d = new Date(anchor);
-    if (type === "week") {
-      const day = (d.getDay() + 6) % 7;
-      d.setDate(d.getDate() - day);
-    } else {
-      d.setDate(1);
-    }
-    return d.toISOString().slice(0, 10);
-  }
-  function colorDot(color) {
-    const map = {
-      Rojo: "#ef4444",
-      Ámbar: "#f59e0b",
-      Verde: "#22c55e",
-      Azul: "#60a5fa",
-    };
-    const c = map[color] || "#9ca3af";
-    return `<span class="inline-block w-2.5 h-2.5 rounded-full" style="background:${c}"></span>`;
-  }
-  // Caritas
-  const emoIcon = (e) => {
-    const base = "currentColor";
-    const faces = {
-      feliz: `<circle cx="12" cy="12" r="10" stroke="${base}" fill="none"/><circle cx="9" cy="10" r="1.2" fill="${base}"/><circle cx="15" cy="10" r="1.2" fill="${base}"/><path d="M8.5 14c1.5 2 5.5 2 7 0" stroke="${base}" stroke-width="1.6" stroke-linecap="round"/>`,
-      muy_feliz: `<circle cx="12" cy="12" r="10" stroke="${base}" fill="none"/><circle cx="9" cy="10" r="1.2" fill="${base}"/><circle cx="15" cy="10" r="1.2" fill="${base}"/><path d="M7.5 14c2.5 3 6.5 3 9 0" stroke="${base}" stroke-width="1.6" stroke-linecap="round"/>`,
-      emocionado: `<circle cx="12" cy="12" r="10" stroke="${base}" fill="none"/><circle cx="9" cy="10" r="1.2" fill="${base}"/><circle cx="15" cy="10" r="1.2" fill="${base}"/><path d="M8 14c2 2 4 2 8 0" stroke="${base}" stroke-width="1.6"/><path d="M12 6v2" stroke="${base}" stroke-width="1.6" stroke-linecap="round"/>`,
-      agradecido: `<circle cx="12" cy="12" r="10" stroke="${base}" fill="none"/><circle cx="9" cy="10" r="1.2" fill="${base}"/><circle cx="15" cy="10" r="1.2" fill="${base}"/><path d="M8 15c2 1 6 1 8 0" stroke="${base}" stroke-width="1.6"/><path d="M7 7l2 2M17 7l-2 2" stroke="${base}" stroke-width="1.6"/>`,
-      confiado: `<circle cx="12" cy="12" r="10" stroke="${base}" fill="none"/><circle cx="9" cy="10" r="1.2" fill="${base}"/><circle cx="15" cy="10" r="1.2" fill="${base}"/><path d="M8.5 14c1.5 2 5.5 2 7 0" stroke="${base}" stroke-width="1.6"/><path d="M7 7l2 2" stroke="${base}" stroke-width="1.6"/>`,
-      aliviado: `<circle cx="12" cy="12" r="10" stroke="${base}" fill="none"/><path d="M9 10l-1 1M16 10l-1 1" stroke="${base}" stroke-width="1.6"/><path d="M8.5 14c1.5 2 5.5 2 7 0" stroke="${base}" stroke-width="1.6"/>`,
-      meh: `<circle cx="12" cy="12" r="10" stroke="${base}" fill="none"/><circle cx="9" cy="10" r="1.2" fill="${base}"/><circle cx="15" cy="10" r="1.2" fill="${base}"/><path d="M8 15h8" stroke="${base}" stroke-width="1.6" stroke-linecap="round"/>`,
-      cansado: `<circle cx="12" cy="12" r="10" stroke="${base}" fill="none"/><path d="M8 10h2M14 10h2" stroke="${base}" stroke-width="1.6" stroke-linecap="round"/><path d="M8 15h8" stroke="${base}" stroke-width="1.6" stroke-linecap="round"/>`,
-      nervioso: `<circle cx="12" cy="12" r="10" stroke="${base}" fill="none"/><path d="M8 10l1 1M16 10l-1 1" stroke="${base}" stroke-width="1.6"/><path d="M8 16c2 0 6 0 8 0" stroke="${base}" stroke-width="1.6" stroke-dasharray="3 2"/>`,
-      triste: `<circle cx="12" cy="12" r="10" stroke="${base}" fill="none"/><circle cx="9" cy="10" r="1.2" fill="${base}"/><circle cx="15" cy="10" r="1.2" fill="${base}"/><path d="M8.5 16c1.5-2 5.5-2 7 0" stroke="${base}" stroke-width="1.6" stroke-linecap="round"/>`,
-      muy_triste: `<circle cx="12" cy="12" r="10" stroke="${base}" fill="none"/><circle cx="9" cy="10" r="1.2" fill="${base}"/><circle cx="15" cy="10" r="1.2" fill="${base}"/><path d="M7.5 17c2.5-3 6.5-3 9 0" stroke="${base}" stroke-width="1.6" stroke-linecap="round"/>`,
-      frustrado: `<circle cx="12" cy="12" r="10" stroke="${base}" fill="none"/><path d="M8 10l2-1M16 10l-2-1" stroke="${base}" stroke-width="1.6" stroke-linecap="round"/><path d="M8 16l8-1" stroke="${base}" stroke-width="1.6" />`,
-      estresado: `<circle cx="12" cy="12" r="10" stroke="${base}" fill="none"/><path d="M8 10l2 1M14 11l2-1" stroke="${base}" stroke-width="1.6"/><path d="M7 16h10" stroke="${base}" stroke-width="1.6" stroke-dasharray="2 2"/>`,
-      ansioso: `<circle cx="12" cy="12" r="10" stroke="${base}" fill="none"/><circle cx="9" cy="10" r="1" fill="${base}"/><circle cx="15" cy="12" r="1" fill="${base}"/><path d="M8 16h8" stroke="${base}" stroke-width="1.6" stroke-dasharray="1 2"/>`,
-      furioso: `<circle cx="12" cy="12" r="10" stroke="${base}" fill="none"/><path d="M8 9l2-2M16 9l-2-2" stroke="${base}" stroke-width="1.6" stroke-linecap="round"/><path d="M8.5 16c1.5-2 5.5-2 7 0" stroke="${base}" stroke-width="1.6" stroke-linecap="round"/>`,
-    };
-    const svg = faces[e] || faces.meh;
-    return `<svg class="icon-sm" viewBox="0 0 24 24" fill="none">${svg}</svg>`;
-  };
-
-  async function renderLightsInit() {
-    const today = new Date();
-    if (fpLightsStart) fpLightsStart.destroy();
-    fpLightsStart = flatpickr("#lightsRangeStart", {
-      altInput: true,
-      altFormat: "d/m/Y",
-      dateFormat: "Y-m-d",
-      defaultDate: rangeFrom("week", today),
-      allowInput: true,
-      onChange: () => renderLights(),
-    });
-    qs("#lightsRangeType").value = "week";
-    qs("#lightsRangeType")?.addEventListener("change", renderLights);
-    lightsWho?.addEventListener("change", renderLights);
     await renderLights();
   }
 
-  btnAddLight?.addEventListener("click", () => openLightModal());
+  async function renderLights(){
+    const list=qs('#lightsList'); if(!list) return;
+    const stats=qs('#lightsStats');
+    list.innerHTML='<div class="text-sm opacity-70">Cargando…</div>';
+    try{
+      const type = qs('#lightsRangeType').value || 'week';
+      const start= qs('#lightsRangeStart').value || rangeFrom(type,new Date());
+      const dStart=new Date(start), dEnd=new Date(start);
+      if(type==='week'){ dEnd.setDate(dStart.getDate()+6); } else { dEnd.setMonth(dStart.getMonth()+1); dEnd.setDate(dEnd.getDate()-1); }
+      const who = qs('#lightsWho').value || undefined;
 
-  async function renderLights() {
-    const list = qs("#lightsList");
-    if (!list) return;
-    list.innerHTML = `<div class="text-sm opacity-70">Cargando...</div>`;
-    try {
-      const type = qs("#lightsRangeType")?.value || "week";
-      const start = qs("#lightsRangeStart")?.value || rangeFrom(type, new Date());
-      const whoFilter = lightsWho?.value || "Todos";
+      const items = await window.NT.lights.listLights({
+        from: start, to: dEnd.toISOString().slice(0,10), who
+      });
 
-      const dStart = new Date(start),
-        dEnd = new Date(start);
-      if (type === "week") {
-        dEnd.setDate(dStart.getDate() + 6);
-      } else {
-        dEnd.setMonth(dStart.getMonth() + 1);
-        dEnd.setDate(dEnd.getDate() - 1);
-      }
-      const from = start,
-        to = dEnd.toISOString().slice(0, 10);
-
-      let items = await window.NT.lights.listLights({ from, to });
-      if (whoFilter !== "Todos") items = items.filter((i) => i.who === whoFilter);
-
-      const counts = { Rojo: 0, Ámbar: 0, Verde: 0, Azul: 0 };
-      items.forEach((i) => (counts[i.color] = (counts[i.color] || 0) + 1));
-      if (lightsStats)
-        lightsStats.innerHTML = Object.entries(counts)
-          .map(
-            ([k, v]) => `
+      const counts = {Rojo:0,'Ámbar':0,Verde:0,Azul:0};
+      items.forEach(i=> counts[i.color]=(counts[i.color]||0)+1);
+      stats.innerHTML = Object.entries(counts).map(([k,v])=>`
         <div class="gs-card p-3 flex items-center justify-between">
           <div class="flex items-center gap-2">${colorDot(k)} <span>${k}</span></div>
           <div class="text-2xl font-semibold">${v}</div>
-        </div>`
-          )
-          .join("");
+        </div>`).join('');
 
-      if (!items.length) {
-        list.innerHTML = `<div class="text-sm opacity-70">Sin entradas.</div>`;
-        return;
-      }
+      if(!items.length){ list.innerHTML='<div class="text-sm opacity-70">Sin entradas.</div>'; return; }
+      list.innerHTML = items.map(l=>`
+        <div class="gs-card p-4">
+          <div class="flex items-center justify-between mb-1 text-sm opacity-80">
+            <div class="flex items-center gap-2">${colorDot(l.color)} <strong>${esc(l.who)}</strong></div>
+            <div>${esc(l.light_on)}</div>
+          </div>
+          <div class="font-medium">${esc(l.action)}</div>
+          <div class="mt-1 text-xs opacity-80">${esc(l.notes||'')}</div>
+          <div class="mt-3 flex items-center gap-2 justify-end">
+            <button class="gs-btn" data-edit="${l.id}" title="Editar"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 20h4l10-10-4-4L4 16v4Z"/></svg></button>
+            <button class="gs-btn" data-del="${l.id}" title="Borrar"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 7h12M10 11v6M14 11v6M9 7l1-2h4l1 2M7 7l1 12h8l1-12"/></svg></button>
+          </div>
+        </div>`).join('');
 
-      list.innerHTML = items
-        .map(
-          (l) => `<div class="gs-card p-4">
-        <div class="flex items-center justify-between mb-1 text-sm opacity-80">
-          <div class="flex items-center gap-2">${colorDot(l.color)} <strong>${esc(
-            l.who
-          )}</strong></div>
-          <div>${esc(l.light_on)}</div>
-        </div>
-        <div class="font-medium">${esc(l.action)}</div>
-        <div class="mt-1 text-xs opacity-80 flex items-center gap-2">
-          <span>${l.who === "Eddy" ? "Dani" : "Eddy"}</span> ·
-          <span class="inline-flex items-center gap-1">${emoIcon(
-            l.emotion
-          )} <span>${esc(l.emotion)}</span></span>
-        </div>
-        ${l.notes ? `<div class="mt-2 text-xs opacity-80">${esc(l.notes)}</div>` : ""}
-        <div class="mt-3 flex items-center gap-2 justify-end">
-          <button class="gs-btn" data-edit-light="${l.id}" title="Editar">
-            <svg class="icon-sm" viewBox="0 0 24 24" fill="none"><path d="M4 20h4l10-10-4-4L4 16v4Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-          </button>
-          <button class="gs-btn" data-del-light="${l.id}" title="Borrar">
-            <svg class="icon-sm" viewBox="0 0 24 24" fill="none"><path d="M6 7h12M10 11v6M14 11v6M9 7l1-2h4l1 2M7 7l1 12h8l1-12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-          </button>
-        </div>
-      </div>`
-        )
-        .join("");
+      qsa('[data-edit]').forEach(b=> b.onclick=()=>{
+        const id=b.getAttribute('data-edit'); const it=items.find(x=>x.id===id); openLightModal(it);
+      });
+      qsa('[data-del]').forEach(b=> b.onclick=async ()=>{
+        const id=b.getAttribute('data-del'); if(!confirm('¿Eliminar entrada?')) return;
+        try{ await window.NT.lights.deleteLight(id); toast('Eliminada','success'); renderLights(); }catch(e){ console.error(e); toast('Error al eliminar','error'); }
+      });
 
-      qsa("[data-edit-light]").forEach((b) =>
-        b.addEventListener("click", () => {
-          const id = b.getAttribute("data-edit-light");
-          const it = items.find((x) => x.id === id);
-          openLightModal(it);
-        })
-      );
-      qsa("[data-del-light]").forEach((b) =>
-        b.addEventListener("click", async () => {
-          const id = b.getAttribute("data-del-light");
-          if (!confirm("¿Eliminar entrada?")) return;
-          try {
-            await window.NT.lights.deleteLight(id);
-            toast("Eliminada", "success");
-            renderLights();
-          } catch (e) {
-            console.error(e);
-            toast("Error al eliminar", "error");
-          }
-        })
-      );
-    } catch (e) {
-      console.error(e);
-      qs("#lightsList").innerHTML = `<div class="text-sm text-red-300">Error al cargar</div>`;
-    }
+    }catch(e){ console.error(e); list.innerHTML='<div class="text-sm text-red-300">Error al cargar</div>'; }
   }
 
-  function openLightModal(item = null) {
-    const modal = qs("#lightModal");
-    if (!modal) return;
-    $$(qs("#deleteLightBtn"), !!item);
-    qs("#lightModalTitle").textContent = item ? "Editar entrada" : "Nueva entrada";
-    qs("#lightId").value = item?.id || "";
-    qs("#lightColor").value = item?.color || "Verde";
-    qs("#lightWho").value = item?.who || "Eddy";
-    qs("#lightEmotion").value = item?.emotion || "meh";
-    qs("#lightAction").value = item?.action || "";
-    qs("#lightNotes").value = item?.notes || "";
-    modal.showModal();
-    if (fpLight) fpLight.destroy();
-    fpLight = fp(qs("#lightDate"));
-    if (item?.light_on) fpLight.setDate(item.light_on, true);
+  function openLightModal(item=null){
+    const dlg=qs('#lightModal'); if(!dlg) return;
+    $$(qs('#deleteLightBtn'), !!item);
+    qs('#lightModalTitle').textContent=item?'Editar entrada':'Nueva entrada';
+    qs('#lightId').value   = item?.id||'';
+    qs('#lightColor').value= item?.color||'Verde';
+    qs('#lightWho').value  = item?.who||'Eddy';
+    fillEmotionSelect(qs('#lightEmotion'));
+    qs('#lightEmotion').value = item?.emotion||'meh';
+    qs('#lightAction').value  = item?.action||'';
+    qs('#lightNotes').value   = item?.notes||'';
+    if(fpLight) fpLight.destroy();
+    fpLight = makeFP(qs('#lightDate'));
+    if(item?.light_on) fpLight.setDate(item.light_on,true);
+    dlg.showModal();
   }
-  qs("#closeLightModal")?.addEventListener("click", () => qs("#lightModal")?.close());
-  qs("#deleteLightBtn")?.addEventListener("click", async () => {
-    const id = qs("#lightId").value;
-    if (!id) return;
-    if (!confirm("¿Eliminar entrada?")) return;
-    try {
-      await window.NT.lights.deleteLight(id);
-      qs("#lightModal").close();
-      toast("Eliminada", "success");
-      renderLights();
-    } catch (e) {
-      console.error(e);
-      toast("Error al eliminar", "error");
-    }
+  qs('#closeLightModal')?.addEventListener('click',()=> qs('#lightModal').close());
+  qs('#deleteLightBtn')?.addEventListener('click', async ()=>{
+    const id=qs('#lightId').value; if(!id) return; if(!confirm('¿Eliminar entrada?')) return;
+    try{ await window.NT.lights.deleteLight(id); qs('#lightModal').close(); toast('Eliminada','success'); renderLights(); }
+    catch(e){ console.error(e); toast('Error al eliminar','error'); }
   });
-  qs("#lightForm")?.addEventListener("submit", async (e) => {
+  qs('#lightForm')?.addEventListener('submit', async (e)=>{
     e.preventDefault();
-    const action = qs("#lightAction").value.trim();
-    if (!action) return toast("Acción es obligatoria", "error");
-    try {
+    const action=qs('#lightAction').value.trim(); if(!action) return toast('Acción es obligatoria','error');
+    try{
       const payload = {
-        id: qs("#lightId").value || undefined,
-        light_on: qs("#lightDate").value,
-        color: qs("#lightColor").value,
-        who: qs("#lightWho").value,
+        id: qs('#lightId').value || undefined,
+        light_on: qs('#lightDate').value,
+        color: qs('#lightColor').value,
+        who: qs('#lightWho').value,
         action,
-        emotion: qs("#lightEmotion").value,
-        notes: qs("#lightNotes").value || null,
+        emotion: qs('#lightEmotion').value,
+        notes: qs('#lightNotes').value||null
       };
       await window.NT.lights.upsertLight(payload);
-      qs("#lightModal").close();
-      toast("Guardado", "success");
-      renderLights();
-    } catch (e) {
-      console.error(e);
-      toast(`Error al guardar: ${e.message}`, "error");
-    }
+      qs('#lightModal').close(); toast('Guardado','success'); renderLights();
+    }catch(e){ console.error(e); toast(`Error al guardar: ${e.message}`,'error'); }
   });
 
-  // ===== METAS =====
-  const goalsList = qs("#goalsList"),
-    addGoalBtn = qs("#addGoalBtn");
-  const goalModal = qs("#goalModal"),
-    goalForm = qs("#goalForm"),
-    deleteGoalBtn = qs("#deleteGoalBtn");
-  const goalModalTitle = qs("#goalModalTitle");
-  const goalId = qs("#goalId"),
-    goalPromoter = qs("#goalPromoter"),
-    goalDeadline = qs("#goalDeadline"),
-    goalTitle = qs("#goalTitle"),
-    goalStatus = qs("#goalStatus"),
-    goalProgress = qs("#goalProgress"),
-    goalNotes = qs("#goalNotes");
-  const goalsFilterPromoter = qs("#goalsFilterPromoter"),
-    goalsFilterStatus = qs("#goalsFilterStatus");
-
-  goalsFilterPromoter?.addEventListener("change", renderGoals);
-  goalsFilterStatus?.addEventListener("change", renderGoals);
-  addGoalBtn?.addEventListener("click", () => openGoalModal());
-
-  function openGoalModal(item = null) {
-    if (!goalModal) return;
-    goalModalTitle.textContent = item ? "Editar meta" : "Nueva meta";
-    $$(deleteGoalBtn, !!item);
-    goalId.value = item?.id || "";
-    goalPromoter.value = item?.promoter || "Ambos";
-    goalDeadline.value = item?.deadline || "";
-    goalTitle.value = item?.title || "";
-    goalStatus.value = item?.status || "plan";
-    goalProgress.value = item?.progress ?? 0;
-    goalNotes.value = item?.notes || "";
-    goalModal.showModal();
-    if (window.flatpickr) {
-      if (goalModal.__fp) goalModal.__fp.destroy();
-      goalModal.__fp = flatpickr("#goalDeadline", {
-        altInput: true,
-        altFormat: "d/m/Y",
-        dateFormat: "Y-m-d",
-        defaultDate: new Date(),
-        allowInput: true,
+  // ---------- AJUSTES: Contactos ----------
+  async function renderContacts(){
+    const list=qs('#contactsList'); if(!list) return;
+    list.innerHTML='<div class="text-sm opacity-70">Cargando…</div>';
+    try{
+      const status=qs('#filterStatus').value||undefined;
+      const items=await window.NT.contacts.listContacts({status});
+      if(!items.length){ list.innerHTML='<div class="text-sm opacity-70">Sin contactos.</div>'; return; }
+      list.innerHTML = items.map(c=>`
+        <div class="gs-card p-4 flex items-start justify-between">
+          <div>
+            <div class="font-medium">${esc(c.alias?`${c.name} · ${c.alias}`:(c.name||'—'))}</div>
+            <div class="text-xs opacity-70">${esc(c.owner||'')} · ${esc(c.category||'')}</div>
+            ${c.treatment?`<div class="mt-1 text-xs"><span class="gs-chip">${esc(c.treatment)}</span></div>`:''}
+            ${c.notes?`<div class="mt-2 text-xs opacity-80">${esc(c.notes)}</div>`:''}
+          </div>
+          <div class="flex items-center gap-2">
+            <button class="gs-btn" data-del="${c.id}" title="Borrar"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 7h12M10 11v6M14 11v6M9 7l1-2h4l1 2M7 7l1 12h8l1-12"/></svg></button>
+          </div>
+        </div>`).join('');
+      qsa('#filterStatus')[0]?.addEventListener('change',renderContacts);
+      qsa('[data-del]').forEach(b=> b.onclick=async ()=>{
+        const id=b.getAttribute('data-del'); if(!confirm('¿Eliminar contacto?')) return;
+        try{ await window.NT.contacts.deleteContact(id); toast('Eliminado','success'); renderContacts(); }
+        catch(e){ console.error(e); toast('Error al eliminar','error'); }
       });
-      if (item?.deadline) goalModal.__fp.setDate(item.deadline, true);
-    }
-  }
-  qs("#closeGoalModal")?.addEventListener("click", () => goalModal?.close());
-  deleteGoalBtn?.addEventListener("click", async () => {
-    const id = goalId.value;
-    if (!id) return;
-    if (!confirm("¿Eliminar meta?")) return;
-    try {
-      await window.NT.goals.deleteGoal(id);
-      goalModal.close();
-      toast("Eliminada", "success");
-      renderGoals();
-    } catch (e) {
-      console.error(e);
-      toast("Error al eliminar", "error");
-    }
-  });
-  goalForm?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    if (!goalTitle.value.trim())
-      return toast("La meta necesita un título", "error");
-    try {
-      const payload = {
-        id: goalId.value || undefined,
-        promoter: goalPromoter.value,
-        title: goalTitle.value.trim(),
-        deadline: goalDeadline.value,
-        status: goalStatus.value,
-        progress: Math.max(0, Math.min(100, Number(goalProgress.value || 0))),
-        notes: goalNotes.value || null,
-      };
-      await window.NT.goals.upsertGoal(payload);
-      goalModal.close();
-      toast("Guardado", "success");
-      renderGoals();
-    } catch (e) {
-      console.error(e);
-      toast(`Error al guardar: ${e.message}`, "error");
-    }
-  });
-  async function renderGoals() {
-    if (!goalsList) return;
-    goalsList.innerHTML = `<div class="text-sm opacity-70">Cargando...</div>`;
-    try {
-      const promoter = goalsFilterPromoter?.value || "Todos";
-      const status = goalsFilterStatus?.value || "todas";
-      const items = await window.NT.goals.listGoals({ promoter, status });
-      if (!items.length) {
-        goalsList.innerHTML = `<div class="text-sm opacity-70">Sin metas.</div>`;
-        return;
-      }
-      goalsList.innerHTML = items
-        .map(
-          (g) => `<div class="gs-card p-4 flex items-start justify-between">
-        <div>
-          <div class="font-medium">${esc(g.title)}</div>
-          <div class="text-xs opacity-70">${esc(g.promoter)} · vence ${esc(
-            g.deadline
-          )} · ${esc(g.status)} · ${g.progress}%</div>
-          ${g.notes ? `<div class="mt-1 text-xs opacity-80">${esc(g.notes)}</div>` : ""}
-        </div>
-        <div class="flex items-center gap-2">
-          <button class="gs-btn" data-edit-goal="${g.id}" title="Editar">
-            <svg class="icon-sm" viewBox="0 0 24 24" fill="none"><path d="M4 20h4l10-10-4-4L4 16v4Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-          </button>
-          <button class="gs-btn" data-del-goal="${g.id}" title="Borrar">
-            <svg class="icon-sm" viewBox="0 0 24 24" fill="none"><path d="M6 7h12M10 11v6M14 11v6M9 7l1-2h4l1 2M7 7l1 12h8l1-12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-          </button>
-        </div>
-      </div>`
-        )
-        .join("");
-      qsa("[data-edit-goal]").forEach((b) =>
-        b.addEventListener("click", () => {
-          const id = b.getAttribute("data-edit-goal");
-          const it = items.find((x) => x.id === id);
-          openGoalModal(it);
-        })
-      );
-      qsa("[data-del-goal]").forEach((b) =>
-        b.addEventListener("click", async () => {
-          const id = b.getAttribute("data-del-goal");
-          if (!confirm("¿Eliminar meta?")) return;
-          try {
-            await window.NT.goals.deleteGoal(id);
-            toast("Eliminada", "success");
-            renderGoals();
-          } catch (e) {
-            console.error(e);
-            toast("Error al eliminar", "error");
-          }
-        })
-      );
-    } catch (e) {
-      console.error(e);
-      goalsList.innerHTML = `<div class="text-sm text-red-300">Error al cargar</div>`;
-    }
+    }catch(e){ console.error(e); list.innerHTML='<div class="text-sm text-red-300">Error al cargar</div>'; }
   }
 
-  // ===== Arranque =====
-  onReady(() => {
-    initTheme();
-    if (!location.hash) location.hash = "#/resumen";
-    parseRoute();
+  // ---------- AJUSTES: Prácticas ----------
+  async function renderPractices(){
+    const list=qs('#practicesList'); if(!list) return;
+    list.innerHTML='<div class="text-sm opacity-70">Cargando…</div>';
+    try{
+      const items=await window.NT.practices.listPractices();
+      if(!items.length){ list.innerHTML='<div class="text-sm opacity-70">Sin prácticas.</div>'; return; }
+      list.innerHTML = items.map(p=>`
+        <div class="gs-card p-3 flex items-center justify-between">
+          <div><div class="font-medium">${esc(p.label)}</div><div class="text-xs opacity-70">key: ${esc(p.key)} · ${p.active?'Activa':'Inactiva'}</div></div>
+          <button class="gs-btn" data-del="${p.key}" title="Borrar"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 7h12M10 11v6M14 11v6M9 7l1-2h4l1 2M7 7l1 12h8l1-12"/></svg></button>
+        </div>`).join('');
+      qsa('[data-del]').forEach(b=> b.onclick=async ()=>{
+        const key=b.getAttribute('data-del'); if(!confirm('¿Eliminar práctica?')) return;
+        try{ await window.NT.practices.deletePractice(key); toast('Eliminada','success'); renderPractices(); }
+        catch(e){ console.error(e); toast('Error al eliminar','error'); }
+      });
+    }catch(e){ console.error(e); list.innerHTML='<div class="text-sm text-red-300">Error al cargar</div>'; }
+  }
+  qs('#addPracticeBtn')?.addEventListener('click', async ()=>{
+    const key = prompt('Clave (ej: oral_e2d):'); if(!key) return;
+    const label = prompt('Nombre visible:'); if(!label) return;
+    try{ await window.NT.practices.upsertPractice({key,label,active:true}); toast('Guardado','success'); renderPractices(); }
+    catch(e){ console.error(e); toast('Error al guardar','error'); }
   });
+
+  // ---------- Juegos / Acuerdos / Metas (listas sencillas para no romper) ----------
+  async function renderGames(){
+    const el=qs('#gamesList'); if(!el) return;
+    try{
+      const items=await window.NT.games.listGames();
+      el.innerHTML = items.length ? items.map(g=>`
+        <div class="gs-card p-4 flex items-start justify-between">
+          <div><div class="font-medium">${esc(g.kind==='juego'?'Juego':'Mini-juego')} · ${esc(g.promoter)} · ${esc(g.played_on)}</div>
+          <div class="text-xs opacity-70">${esc(g.role)} · Condón: ${g.condom?'Sí':'No'} · Satisfacción: ${g.satisfaction||'-'}</div></div>
+        </div>`).join('') : '<div class="text-sm opacity-70">Sin juegos.</div>';
+    }catch(e){ console.error(e); el.innerHTML='<div class="text-sm text-red-300">Error al cargar</div>'; }
+  }
+  async function renderAgreements(){
+    const el=qs('#agreementsList'); if(!el) return;
+    try{
+      const items=await window.NT.agreements.listAgreements({});
+      el.innerHTML = items.length ? items.map(a=>`
+        <div class="gs-card p-4 flex items-start justify-between">
+          <div><div class="font-medium">${esc(a.title)}</div>
+          <div class="text-xs opacity-70">${esc(a.category_key)} · ${esc(a.promoter)} · ${esc(a.created_on)} · ${esc(a.status)}</div></div>
+        </div>`).join('') : '<div class="text-sm opacity-70">Sin acuerdos.</div>';
+    }catch(e){ console.error(e); el.innerHTML='<div class="text-sm text-red-300">Error al cargar</div>'; }
+  }
+  async function renderGoals(){
+    const el=qs('#goalsList'); if(!el) return;
+    try{
+      // Si aún no usas goals desde el front, muestro placeholder
+      el.innerHTML = '<div class="text-sm opacity-70">Aún sin metas en UI. (BD OK)</div>';
+    }catch(e){ console.error(e); el.innerHTML='<div class="text-sm text-red-300">Error al cargar</div>'; }
+  }
+
+  // ---------- arranque ----------
+  onReady(()=>{ if(!location.hash) location.hash='#/resumen'; parseRoute(); });
 })();
