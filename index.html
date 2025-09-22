@@ -86,8 +86,12 @@
 
       <div id="authActions" class="ml-auto flex items-center gap-2 hidden-vis">
         <button id="themeToggle" class="gs-btn" title="Tema" aria-label="Tema">
-          <svg class="gs-icon" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="1.5"/></svg>
-        </button>
+  <!-- Sol/Luna dinámicos -->
+  <svg id="themeIcon" class="gs-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <!-- el UI lo actualiza; esto es inicial -->
+    <circle cx="12" cy="12" r="5" stroke-width="1.6"></circle>
+  </svg>
+</button>
         <div class="relative group">
           <div class="gs-btn" aria-label="Usuario">
             <svg class="gs-icon" viewBox="0 0 24 24" fill="none">
@@ -368,3 +372,4 @@
   <script src="./ui.js"></script>
 </body>
 </html>
+
