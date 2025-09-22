@@ -7,6 +7,11 @@
 
   <script src="https://cdn.tailwindcss.com"></script>
 
+  <!-- Flatpickr (calendarios) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/airbnb.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
   <style>
     /* Glass Studio con buen contraste en Light */
     :root{
@@ -25,14 +30,15 @@
     }
     body{
       color:var(--text);
-      background: radial-gradient(1200px 800px at 10% -10%, var(--bg-grad-2), transparent),
-                  radial-gradient(1000px 600px at 90% 10%, var(--bg-grad-2), transparent),
-                  linear-gradient(180deg, var(--bg-grad-1), var(--bg-grad-2));
+      background:
+        radial-gradient(1200px 800px at 10% -10%, var(--bg-grad-2), transparent),
+        radial-gradient(1000px 600px at 90% 10%, var(--bg-grad-2), transparent),
+        linear-gradient(180deg, var(--bg-grad-1), var(--bg-grad-2));
     }
     .gs-card{ border-radius: 16px; box-shadow: 0 8px 32px rgba(2,6,23,.15);
       -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
       border: 1px solid var(--border); background: var(--card-bg); }
-    .gs-btn{ border-radius: 12px; padding: 8px 14px; font-weight: 500;
+    .gs-btn{ border-radius: 12px; padding: 8px; width:36px; height:36px; display:inline-flex; align-items:center; justify-content:center;
       box-shadow: 0 4px 16px rgba(0,0,0,.18); border: 1px solid var(--border);
       background: rgba(255,255,255,.40); }
     .dark .gs-btn{ background: rgba(255,255,255,.10); }
@@ -42,12 +48,19 @@
     .gs-label{ font-size: .875rem; opacity:.9; display:block; margin-bottom:4px; }
     .gs-chip{ font-size:.75rem; padding:4px 8px; border-radius:999px; border:1px solid var(--border); background: rgba(255,255,255,.10); }
     .gs-icon{ width:20px; height:20px; }
+    .icon-sm{ width:16px; height:16px; }
     .hidden-vis{ display:none; }
     .nav-link{ color:inherit; }
     .nav-link.active{ background: rgba(255,255,255,.18); border:1px solid var(--border); border-radius: 10px; }
     .tooltip{ position:absolute; right:0; top:110%; background: rgba(0,0,0,.72); color:white;
       font-size:.75rem; padding:6px 8px; border-radius:8px; white-space:nowrap;
       border:1px solid rgba(255,255,255,.2); box-shadow: 0 8px 24px rgba(0,0,0,.25); pointer-events:none; }
+
+    /* Flatpickr: ajuste leve para dark */
+    .dark .flatpickr-calendar{ background:#0f172a; color:#e5e7eb; border-color:#1f2937; }
+    .dark .flatpickr-day{ color:#e5e7eb; }
+    .dark .flatpickr-day.today{ border-color:#C7A740; }
+    .dark .flatpickr-day.selected{ background:#C7A740; color:#0f172a; }
   </style>
 </head>
 <body class="h-full">
@@ -72,20 +85,18 @@
       </nav>
 
       <div id="authActions" class="ml-auto flex items-center gap-2 hidden-vis">
-        <button id="themeToggle" class="gs-btn flex items-center justify-center" title="Cambiar tema" aria-label="Cambiar tema">
-          <span id="themeIcon" class="inline-block" aria-hidden="true">
-            <svg class="gs-icon" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="1.5"/></svg>
-          </span>
+        <button id="themeToggle" class="gs-btn" title="Tema" aria-label="Tema">
+          <svg class="gs-icon" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="1.5"/></svg>
         </button>
         <div class="relative group">
-          <div class="gs-btn flex items-center justify-center" aria-label="Usuario">
+          <div class="gs-btn" aria-label="Usuario">
             <svg class="gs-icon" viewBox="0 0 24 24" fill="none">
               <path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4 0-7 2-7 4v2h14v-2c0-2-3-4-7-4Z" stroke="currentColor" stroke-width="1.5"/>
             </svg>
           </div>
           <div id="userTooltip" class="tooltip hidden group-hover:block"></div>
         </div>
-        <button id="logoutBtn" class="gs-btn flex items-center justify-center" title="Salir" aria-label="Salir">
+        <button id="logoutBtn" class="gs-btn" title="Salir" aria-label="Salir">
           <svg class="gs-icon" viewBox="0 0 24 24" fill="none">
             <path d="M9 7V5a2 2 0 0 1 2-2h7v18h-7a2 2 0 0 1-2-2v-2" stroke="currentColor" stroke-width="1.5"/>
             <path d="M7 12h10M7 12l3-3M7 12l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
@@ -109,15 +120,23 @@
           <label class="gs-label">Password</label>
           <input id="passwordInput" type="password" class="gs-input" autocomplete="current-password" required>
         </div>
-        <button type="submit" id="loginBtn" class="gs-btn" style="background:#C7A740; color:#0f172a; border-color:transparent">Entrar</button>
+        <button type="submit" id="loginBtn" class="gs-btn" style="background:#C7A740; color:#0f172a; border-color:transparent; width:auto; padding:8px 14px">Entrar</button>
       </form>
       <p class="text-xs opacity-70 mt-2">Solo usuarios permitidos (Eddy y Dani).</p>
     </section>
 
-    <!-- App views (todas ocultas hasta router) -->
+    <!-- App views -->
     <section id="appViews" class="space-y-6 hidden-vis">
-      <div id="view-resumen"  class="gs-card p-5 hidden-vis"><div class="flex items-center justify-between mb-4"><h2 class="text-lg font-semibold">Resumen</h2><span class="text-xs opacity-70">v0.3</span></div><div id="resumeStats" class="grid grid-cols-1 sm:grid-cols-4 gap-4"></div></div>
+      <!-- Resumen -->
+      <div id="view-resumen" class="gs-card p-5 hidden-vis">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold">Resumen</h2>
+          <span class="text-xs opacity-70">v0.4</span>
+        </div>
+        <div id="resumeStats" class="grid grid-cols-1 sm:grid-cols-4 gap-4"></div>
+      </div>
 
+      <!-- Acuerdos -->
       <div id="view-acuerdos" class="gs-card p-5 hidden-vis">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-lg font-semibold">Acuerdos</h2>
@@ -125,33 +144,44 @@
             <select id="agreFilterStatus" class="gs-input !w-auto text-sm">
               <option value="">Todos</option><option>Aprobado</option><option>Pendiente</option><option>Rechazado</option>
             </select>
-            <button id="addAgreementBtn" class="gs-btn">+ Agregar</button>
+            <button id="addAgreementBtn" class="gs-btn" title="Agregar">
+              <svg class="gs-icon" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </button>
           </div>
         </div>
         <div id="agreementsList" class="grid gap-3"></div>
       </div>
 
+      <!-- Luces -->
       <div id="view-luces" class="gs-card p-5 hidden-vis">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-lg font-semibold">Luces</h2>
           <div class="flex items-center gap-2">
             <select id="lightsRangeType" class="gs-input !w-auto text-sm"><option value="week">Semana</option><option value="month">Mes</option></select>
-            <input type="date" id="lightsRangeStart" class="gs-input !w-auto text-sm" />
-            <button id="addLightBtn" class="gs-btn">+ Agregar</button>
+            <input type="text" id="lightsRangeStart" class="gs-input !w-auto text-sm" placeholder="Selecciona fecha" />
+            <button id="addLightBtn" class="gs-btn" title="Agregar">
+              <svg class="gs-icon" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </button>
           </div>
         </div>
         <div id="lightsStats" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4"></div>
         <div id="lightsList" class="grid gap-3"></div>
       </div>
 
+      <!-- Juegos -->
       <div id="view-juegos" class="gs-card p-5 hidden-vis">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-lg font-semibold">Juegos</h2>
-          <div class="flex items-center gap-2"><button id="addGameBtn" class="gs-btn">+ Agregar</button></div>
+          <div class="flex items-center gap-2">
+            <button id="addGameBtn" class="gs-btn" title="Agregar">
+              <svg class="gs-icon" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </button>
+          </div>
         </div>
         <div id="gamesList" class="grid gap-3"></div>
       </div>
 
+      <!-- Ajustes -->
       <div id="view-ajustes" class="space-y-6 hidden-vis">
         <div class="gs-card p-5">
           <div class="flex items-center justify-between mb-4">
@@ -162,7 +192,9 @@
                 <option>Bloqueado</option><option>Silenciado</option><option>Archivado</option>
                 <option>Eliminado</option><option>Inaccesible</option><option>Conservado</option>
               </select>
-              <button id="addContactFab" class="gs-btn">+ Agregar</button>
+              <button id="addContactFab" class="gs-btn" title="Agregar">
+                <svg class="gs-icon" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              </button>
             </div>
           </div>
           <div id="contactsList" class="grid gap-3"></div>
@@ -171,7 +203,9 @@
         <div class="gs-card p-5">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-semibold">Ajustes · Categorías de Acuerdos</h2>
-            <button id="addAgreCatBtn" class="gs-btn">+ Categoría</button>
+            <button id="addAgreCatBtn" class="gs-btn" title="Categoría">
+              <svg class="gs-icon" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </button>
           </div>
           <div id="agreCatsList" class="grid gap-3"></div>
         </div>
@@ -179,16 +213,17 @@
         <div class="gs-card p-5">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-semibold">Ajustes · Prácticas</h2>
-            <button id="addPracticeBtn" class="gs-btn">+ Práctica</button>
+            <button id="addPracticeBtn" class="gs-btn" title="Práctica">
+              <svg class="gs-icon" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </button>
           </div>
           <div id="practicesList" class="grid gap-3"></div>
         </div>
       </div>
     </section>
   </main>
-  
-  <!-- ===== Modales ===== -->
 
+  <!-- ===== Modales (Contactos / Acuerdos / Juegos / Luces) ===== -->
   <!-- Contacto -->
   <dialog id="contactModal" class="rounded-2xl w-full max-w-lg p-0 backdrop:bg-black/50">
     <form id="contactForm" method="dialog" class="gs-card p-5">
@@ -214,8 +249,10 @@
         <div class="sm:col-span-2"><label class="gs-label">Notas</label><textarea id="notesInput" class="gs-input" rows="3"></textarea></div>
       </div>
       <div class="mt-4 flex justify-end gap-2">
-        <button type="button" id="deleteBtn" class="gs-btn hidden-vis" style="border-color:rgba(255,255,255,.30);background:rgba(255,255,255,.20);color:#fecaca">Eliminar</button>
-        <button class="gs-btn" style="background:#C7A740; color:#0f172a; border-color:transparent">Guardar</button>
+        <button type="button" id="deleteBtn" class="gs-btn hidden-vis" title="Eliminar">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none"><path d="M6 7h12M10 11v6M14 11v6M9 7l1-2h4l1 2M7 7l1 12h8l1-12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+        <button class="gs-btn" style="background:#C7A740; color:#0f172a; border-color:transparent; width:auto; padding:8px 14px">Guardar</button>
       </div>
     </form>
   </dialog>
@@ -230,7 +267,7 @@
       <input type="hidden" id="agreementId">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div><label class="gs-label">Categoría</label><select id="agreementCategory" class="gs-input"></select></div>
-        <div><label class="gs-label">Fecha del acuerdo</label><input type="date" id="agreementDate" class="gs-input"></div>
+        <div><label class="gs-label">Fecha del acuerdo</label><input type="text" id="agreementDate" class="gs-input" placeholder="Selecciona fecha"></div>
         <div><label class="gs-label">Promotor</label><select id="agreementPromoter" class="gs-input"><option>Eddy</option><option>Dani</option><option>Ambos</option></select></div>
         <div><label class="gs-label">Estado</label><input id="agreementStatusRO" class="gs-input" disabled></div>
         <div class="sm:col-span-2"><label class="gs-label">Acuerdo (título)</label><input id="agreementTitle" class="gs-input" required></div>
@@ -239,13 +276,15 @@
         <div><label class="gs-label">Decisión Dani</label><select id="daniDecision" class="gs-input"><option value="none">Sin decisión</option><option value="approve">Aprobar</option><option value="reject">Rechazar</option></select></div>
       </div>
       <div class="mt-4 flex justify-end gap-2">
-        <button type="button" id="deleteAgreementBtn" class="gs-btn hidden-vis" style="border-color:rgba(255,255,255,.30);background:rgba(255,255,255,.20);color:#fecaca">Eliminar</button>
-        <button class="gs-btn" style="background:#C7A740; color:#0f172a; border-color:transparent">Guardar</button>
+        <button type="button" id="deleteAgreementBtn" class="gs-btn hidden-vis" title="Eliminar">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none"><path d="M6 7h12M10 11v6M14 11v6M9 7l1-2h4l1 2M7 7l1 12h8l1-12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+        <button class="gs-btn" style="background:#C7A740; color:#0f172a; border-color:transparent; width:auto; padding:8px 14px">Guardar</button>
       </div>
     </form>
   </dialog>
 
-  <!-- Juego (Intimidad) -->
+  <!-- Juego -->
   <dialog id="gameModal" class="rounded-2xl w-full max-w-xl p-0 backdrop:bg-black/50">
     <form id="gameForm" method="dialog" class="gs-card p-5">
       <div class="flex items-center justify-between mb-3">
@@ -254,7 +293,7 @@
       </div>
       <input type="hidden" id="gameId">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div><label class="gs-label">Fecha</label><input type="date" id="gameDate" class="gs-input"></div>
+        <div><label class="gs-label">Fecha</label><input type="text" id="gameDate" class="gs-input" placeholder="Selecciona fecha"></div>
         <div><label class="gs-label">Tipo</label><select id="gameKind" class="gs-input"><option value="juego">Juego</option><option value="mini-juego">Mini-juego</option></select></div>
         <div><label class="gs-label">Promotor</label><select id="gamePromoter" class="gs-input"><option>Eddy</option><option>Dani</option><option>Ambos</option></select></div>
         <div><label class="gs-label">Condón</label><select id="gameCondom" class="gs-input"><option value="false">No</option><option value="true">Sí</option></select></div>
@@ -268,14 +307,14 @@
         </div>
         <div><label class="gs-label">Satisfacción (1–10)</label><input type="range" id="gameSatisfaction" min="1" max="10" value="7" class="w-full"></div>
         <div class="flex items-center sm:justify-end"><div id="satisfactionGauge"></div></div>
-        <div class="sm:col-span-2"><label class="gs-label">Prácticas</label>
-          <div id="practicesChecklist" class="grid grid-cols-2 gap-2"></div>
-        </div>
+        <div class="sm:col-span-2"><label class="gs-label">Prácticas</label><div id="practicesChecklist" class="grid grid-cols-2 gap-2"></div></div>
         <div class="sm:col-span-2"><label class="gs-label">Notas</label><textarea id="gameNotes" class="gs-input" rows="3"></textarea></div>
       </div>
       <div class="mt-4 flex justify-end gap-2">
-        <button type="button" id="deleteGameBtn" class="gs-btn hidden-vis" style="border-color:rgba(255,255,255,.30);background:rgba(255,255,255,.20);color:#fecaca">Eliminar</button>
-        <button class="gs-btn" style="background:#C7A740; color:#0f172a; border-color:transparent">Guardar</button>
+        <button type="button" id="deleteGameBtn" class="gs-btn hidden-vis" title="Eliminar">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none"><path d="M6 7h12M10 11v6M14 11v6M9 7l1-2h4l1 2M7 7l1 12h8l1-12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+        <button class="gs-btn" style="background:#C7A740; color:#0f172a; border-color:transparent; width:auto; padding:8px 14px">Guardar</button>
       </div>
     </form>
   </dialog>
@@ -289,16 +328,26 @@
       </div>
       <input type="hidden" id="lightId">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div><label class="gs-label">Fecha</label><input type="date" id="lightDate" class="gs-input"></div>
+        <div><label class="gs-label">Fecha</label><input type="text" id="lightDate" class="gs-input" placeholder="Selecciona fecha"></div>
         <div><label class="gs-label">Color</label><select id="lightColor" class="gs-input"><option>Rojo</option><option>Ámbar</option><option>Verde</option><option>Azul</option></select></div>
         <div><label class="gs-label">Quién</label><select id="lightWho" class="gs-input"><option>Eddy</option><option>Dani</option></select></div>
-        <div><label class="gs-label">Sensación</label><select id="lightEmotion" class="gs-input"><option>triste</option><option>frustrado</option><option>cansado</option><option>feliz</option><option>meh</option></select></div>
+        <div><label class="gs-label">Sensación</label>
+          <select id="lightEmotion" class="gs-input">
+            <option>feliz</option><option>muy_feliz</option><option>meh</option>
+            <option>triste</option><option>muy_triste</option><option>cansado</option>
+            <option>frustrado</option><option>furioso</option><option>estresado</option>
+            <option>ansioso</option><option>nervioso</option><option>confiado</option>
+            <option>aliviado</option><option>emocionado</option><option>agradecido</option>
+          </select>
+        </div>
         <div class="sm:col-span-2"><label class="gs-label">Acción</label><input id="lightAction" class="gs-input" required></div>
         <div class="sm:col-span-2"><label class="gs-label">Notas</label><textarea id="lightNotes" class="gs-input" rows="3"></textarea></div>
       </div>
       <div class="mt-4 flex justify-end gap-2">
-        <button type="button" id="deleteLightBtn" class="gs-btn hidden-vis" style="border-color:rgba(255,255,255,.30);background:rgba(255,255,255,.20);color:#fecaca">Eliminar</button>
-        <button class="gs-btn" style="background:#C7A740; color:#0f172a; border-color:transparent">Guardar</button>
+        <button type="button" id="deleteLightBtn" class="gs-btn hidden-vis" title="Eliminar">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none"><path d="M6 7h12M10 11v6M14 11v6M9 7l1-2h4l1 2M7 7l1 12h8l1-12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+        <button class="gs-btn" style="background:#C7A740; color:#0f172a; border-color:transparent; width:auto; padding:8px 14px">Guardar</button>
       </div>
     </form>
   </dialog>
@@ -319,5 +368,3 @@
   <script src="./ui.js"></script>
 </body>
 </html>
-
-
