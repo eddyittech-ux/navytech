@@ -1,113 +1,115 @@
 <!doctype html>
-<html lang="es" class="scroll-smooth">
+<html lang="es" class="h-full">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>NavyTech</title>
 
-  <!-- Tailwind vía CDN (ok para GH Pages) -->
+  <!-- Tailwind vía CDN (ok para GitHub Pages) -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Flatpickr (fecha) -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <!-- Flatpickr -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
-  <!-- Estilos helpers -->
-  <style>
-    :root{
-      --nt-gold:#C7A740; --nt-indigo:#3F3D8F; --nt-blue:#163054;
-    }
-    .dark .gs-card{ background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.08); }
-    .gs-card{ background:rgba(255,255,255,0.65); border:1px solid rgba(0,0,0,0.06); backdrop-filter: blur(8px); border-radius:16px; box-shadow: 0 10px 22px rgba(0,0,0,.06); }
-    .gs-btn{ padding:.5rem .75rem; border-radius:12px; border:1px solid rgba(0,0,0,.12); }
-    .gs-btn.primary{ background:var(--nt-gold); color:#151515; border-color:transparent; font-weight:600; }
-    .gs-btn.danger{ color:#c0392b; border-color:#c0392b33; }
-    .gs-input{ border:1px solid rgba(0,0,0,.15); border-radius:12px; padding:.5rem .75rem; background:rgba(255,255,255,.7); }
-    .dark .gs-input{ background:rgba(20,24,30,.6); border-color:rgba(255,255,255,.14); color:#e8eaed; }
-    .gs-field>span{ font-size:.8rem; opacity:.7; display:block; margin-bottom:.25rem; }
-    .gs-chip{ display:inline-block; padding:.15rem .5rem; border-radius:999px; border:1px solid currentColor; }
-    .gs-icon-btn{ width:40px; height:40px; display:grid; place-items:center; border:1px solid rgba(0,0,0,.15); border-radius:12px; }
-    .icon-sm{ width:20px; height:20px; }
-    .hidden-vis{ display:none !important; }
-    dialog.gs-modal{ border:none; background:transparent; }
-    .gs-modal-card{ width:min(720px,92vw); max-height:85vh; overflow:auto; background:rgba(255,255,255,.9); backdrop-filter: blur(10px); border:1px solid rgba(0,0,0,.08); border-radius:16px; padding:1rem; }
-    .dark .gs-card,.dark .gs-modal-card{ color:#e8eaed; }
-    /* Activo del nav */
-    .nav-link.active{ background:rgba(199,167,64,.18) !important; color:#111 !important; }
-  </style>
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <link rel="stylesheet" href="./styles.css">
 </head>
+<body class="min-h-full bg-slate-100 dark:bg-[#0f1623] text-slate-900 dark:text-slate-100">
 
-<body class="bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-200">
-  <!-- NAV -->
-  <header class="sticky top-0 z-40 backdrop-blur bg-white/60 dark:bg-slate-900/60 border-b border-black/5">
-    <div class="max-w-6xl mx-auto px-4 h-14 flex items-center gap-3">
-      <div class="flex items-center gap-2">
-        <div class="w-7 h-7 rounded-xl" style="background:linear-gradient(135deg,#3F3D8F,#334155)"></div>
-        <a href="#/resumen" class="font-bold">
-          <span style="color:#163054">Navy</span><span style="color:#3F3D8F">Tech</span>
+  <!-- Top bar -->
+  <header class="sticky top-0 z-30 backdrop-blur bg-white/60 dark:bg-[#0f1623]/60 border-b border-white/10">
+    <div class="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+      <nav id="brand" class="flex items-center gap-3">
+        <div class="w-7 h-7 rounded-2xl bg-gradient-to-br from-indigo-700 to-slate-600"></div>
+        <a href="#/resumen" class="text-xl font-bold tracking-tight">
+          <span class="text-[#163054]">Navy</span><span class="text-[#3F3D8F]">Tech</span>
         </a>
-      </div>
-
-      <nav id="mainNav" class="ml-4 flex items-center gap-1">
-        <a href="#/resumen"  class="nav-link px-3 py-1.5 rounded-lg text-sm hover:bg-black/5">Resumen</a>
-        <a href="#/acuerdos" class="nav-link px-3 py-1.5 rounded-lg text-sm hover:bg-black/5">Acuerdos</a>
-        <a href="#/metas"    class="nav-link px-3 py-1.5 rounded-lg text-sm hover:bg-black/5">Metas</a>
-        <a href="#/luces"    class="nav-link px-3 py-1.5 rounded-lg text-sm hover:bg-black/5">Luces</a>
-        <a href="#/juegos"   class="nav-link px-3 py-1.5 rounded-lg text-sm hover:bg-black/5">Juegos</a>
-        <a href="#/ajustes"  class="nav-link px-3 py-1.5 rounded-lg text-sm hover:bg-black/5">Ajustes</a>
       </nav>
 
-      <div class="ml-auto flex items-center gap-2" id="authActions">
+      <nav id="mainNav" class="hidden-vis flex items-center gap-2">
+        <a class="nav-link" href="#/resumen">Resumen</a>
+        <a class="nav-link" href="#/acuerdos">Acuerdos</a>
+        <a class="nav-link" href="#/metas">Metas</a>
+        <a class="nav-link" href="#/luces">Luces</a>
+        <a class="nav-link" href="#/juegos">Juegos</a>
+        <a class="nav-link" href="#/ajustes">Ajustes</a>
+      </nav>
+
+      <div id="authActions" class="hidden-vis flex items-center gap-2">
+        <!-- Theme -->
         <button id="themeToggle" class="gs-icon-btn" title="Tema">
-          <svg id="themeIcon" viewBox="0 0 24 24" width="18" height="18"></svg>
+          <svg id="themeIcon" viewBox="0 0 24 24" class="icon-sm"></svg>
         </button>
-        <div class="relative">
+        <!-- User -->
+        <div class="relative group">
           <button class="gs-icon-btn" title="Usuario">
-            <svg viewBox="0 0 24 24" class="icon-sm"><circle cx="12" cy="8" r="3" stroke="currentColor" fill="none"></circle><path d="M4 20c2-4 14-4 16 0" stroke="currentColor" fill="none"></path></svg>
+            <svg viewBox="0 0 24 24" class="icon-sm" fill="none">
+              <circle cx="12" cy="8" r="3.2" stroke="currentColor" stroke-width="1.8"/>
+              <path d="M5 20c2-3.5 12-3.5 14 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
           </button>
-          <div id="userTooltip" class="absolute right-0 mt-1 text-xs bg-black/75 text-white px-2 py-1 rounded hidden-vis"></div>
+          <div class="absolute right-0 mt-2 hidden group-hover:block text-xs bg-black/70 text-white rounded px-2 py-1">
+            <span id="userTooltip"></span>
+          </div>
         </div>
+        <!-- Logout -->
         <button id="logoutBtn" class="gs-icon-btn" title="Salir">
-          <svg viewBox="0 0 24 24" class="icon-sm"><path d="M10 6V4a2 2 0 0 1 2-2h6v20h-6a2 2 0 0 1-2-2v-2" stroke="currentColor" fill="none"/><path d="M15 12H3m0 0 3-3m-3 3 3 3" stroke="currentColor" fill="none"/></svg>
+          <svg viewBox="0 0 24 24" class="icon-sm" fill="none">
+            <path d="M10 6H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h4" stroke="currentColor" stroke-width="1.8"/>
+            <path d="M14 16l4-4-4-4M18 12H9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
         </button>
       </div>
     </div>
   </header>
 
-  <!-- LOGIN -->
+  <!-- Login -->
   <main class="max-w-6xl mx-auto px-4 py-6">
-    <section id="authCard" class="gs-card p-6 max-w-xl mx-auto mt-6">
-      <h2 class="text-xl font-semibold mb-4">Iniciar sesión</h2>
-      <form id="loginForm" class="grid gap-3">
-        <input id="emailInput" type="email" class="gs-input" placeholder="Email" value="eddyctamayo@gmail.com" />
-        <input id="passwordInput" type="password" class="gs-input" placeholder="Password" />
-        <div class="flex items-center gap-2">
-          <button id="loginBtn" class="gs-btn primary" type="submit">Entrar</button>
-          <span class="text-xs opacity-70">Solo usuarios permitidos (Eddy y Dani).</span>
-        </div>
-      </form>
+    <section id="authCard" class="max-w-xl mx-auto">
+      <div class="gs-card p-8">
+        <h2 class="text-xl font-semibold mb-4">Iniciar sesión</h2>
+        <form id="loginForm" class="space-y-4">
+          <label class="gs-field">
+            <span>Email</span>
+            <input id="emailInput" type="email" class="gs-input" />
+          </label>
+          <label class="gs-field">
+            <span>Password</span>
+            <input id="passwordInput" type="password" class="gs-input" />
+          </label>
+          <div class="flex items-center gap-3">
+            <button id="loginBtn" type="submit" class="gs-btn primary">Entrar</button>
+            <div class="text-xs opacity-60">Solo usuarios permitidos (Eddy y Dani).</div>
+          </div>
+        </form>
+      </div>
     </section>
 
-    <!-- APP VIEWS -->
-    <section id="appViews" class="hidden-vis">
-      <!-- RESUMEN -->
-      <section id="view-resumen" class="gs-card p-4">
-        <div class="flex items-center justify-between mb-2">
-          <h3 class="text-lg font-semibold">Resumen</h3>
-          <div class="text-xs opacity-70">v0.4</div>
+    <!-- App views -->
+    <section id="appViews" class="hidden-vis space-y-6">
+      <!-- Resumen -->
+      <section id="view-resumen" class="hidden-vis">
+        <div class="gs-card p-4">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold">Resumen</h3>
+            <div class="text-xs opacity-60">v0.4</div>
+          </div>
+          <div id="resumeStats"></div>
         </div>
-        <div id="resumeStats"></div>
       </section>
 
-      <!-- ACUERDOS -->
+      <!-- Acuerdos -->
       <section id="view-acuerdos" class="hidden-vis">
         <div class="gs-card p-4">
           <div class="flex items-center gap-2 mb-3">
             <select id="agreFilterStatus" class="gs-input">
               <option value="">Todos</option>
-              <option value="Aprobado">Aprobado</option>
-              <option value="Pendiente">Pendiente</option>
-              <option value="Rechazado">Rechazado</option>
+              <option value="Aprobado">Aprobados</option>
+              <option value="Pendiente">Pendientes</option>
+              <option value="Rechazado">Rechazados</option>
             </select>
             <button id="addAgreementBtn" class="gs-icon-btn" title="Agregar">
               <svg viewBox="0 0 24 24" class="icon-sm"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
@@ -121,7 +123,7 @@
           <form id="agreementForm" method="dialog" class="gs-modal-card">
             <div class="flex items-center justify-between mb-2">
               <h3 id="agreementModalTitle" class="text-lg font-semibold">Nuevo acuerdo</h3>
-              <button type="button" id="closeAgreementModal" class="gs-icon-btn" title="Cerrar">
+              <button type="button" id="closeAgreementModal" class="gs-icon-btn">
                 <svg viewBox="0 0 24 24" class="icon-sm"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
               </button>
             </div>
@@ -134,11 +136,13 @@
               </label>
               <label class="gs-field">
                 <span>Fecha</span>
-                <input id="agreementDate" class="gs-input" placeholder="yyyy-mm-dd" />
+                <input id="agreementDate" class="gs-input" placeholder="yyyy-mm-dd"/>
               </label>
               <label class="gs-field">
                 <span>Promotor</span>
-                <select id="agreementPromoter" class="gs-input"><option>Eddy</option><option>Dani</option><option>Ambos</option></select>
+                <select id="agreementPromoter" class="gs-input">
+                  <option>Eddy</option><option>Ambos</option><option>Dani</option>
+                </select>
               </label>
               <label class="gs-field">
                 <span>Estado</span>
@@ -146,14 +150,14 @@
               </label>
               <label class="gs-field md:col-span-2">
                 <span>Acuerdo</span>
-                <input id="agreementTitle" class="gs-input" />
+                <input id="agreementTitle" class="gs-input"/>
               </label>
               <label class="gs-field md:col-span-2">
                 <span>Notas</span>
-                <textarea id="agreementNotes" rows="3" class="gs-input"></textarea>
+                <textarea id="agreementNotes" class="gs-input" rows="3"></textarea>
               </label>
               <label class="gs-field">
-                <span>Decisión Eddy</span>
+                <span>Eddy</span>
                 <select id="eddyDecision" class="gs-input">
                   <option value="none">—</option>
                   <option value="approve">Aprueba</option>
@@ -161,7 +165,7 @@
                 </select>
               </label>
               <label class="gs-field">
-                <span>Decisión Dani</span>
+                <span>Dani</span>
                 <select id="daniDecision" class="gs-input">
                   <option value="none">—</option>
                   <option value="approve">Aprueba</option>
@@ -178,15 +182,22 @@
         </dialog>
       </section>
 
-      <!-- METAS -->
+      <!-- Metas -->
       <section id="view-metas" class="hidden-vis">
         <div class="gs-card p-4">
           <div class="flex items-center gap-2 mb-3">
             <select id="goalsFilterPromoter" class="gs-input">
-              <option value="Todos">Todos</option><option value="Eddy">Eddy</option><option value="Dani">Dani</option><option value="Ambos">Ambos</option>
+              <option value="Todos">Todos</option>
+              <option value="Eddy">Eddy</option>
+              <option value="Dani">Dani</option>
+              <option value="Ambos">Ambos</option>
             </select>
             <select id="goalsFilterStatus" class="gs-input">
-              <option value="todas">Todas</option><option value="plan">Plan</option><option value="en_curso">En curso</option><option value="pausada">Pausada</option><option value="cumplida">Cumplida</option>
+              <option value="todas">Todas</option>
+              <option value="plan">Plan</option>
+              <option value="en_curso">En curso</option>
+              <option value="pausada">Pausada</option>
+              <option value="cumplida">Cumplida</option>
             </select>
             <button id="addGoalBtn" class="gs-icon-btn" title="Agregar">
               <svg viewBox="0 0 24 24" class="icon-sm"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
@@ -199,31 +210,42 @@
           <form id="goalForm" method="dialog" class="gs-modal-card">
             <div class="flex items-center justify-between mb-2">
               <h3 id="goalModalTitle" class="text-lg font-semibold">Nueva meta</h3>
-              <button type="button" id="closeGoalModal" class="gs-icon-btn" title="Cerrar">
+              <button type="button" id="closeGoalModal" class="gs-icon-btn">
                 <svg viewBox="0 0 24 24" class="icon-sm"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
               </button>
             </div>
             <input id="goalId" type="hidden" />
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <label class="gs-field"><span>Promotor</span>
-                <select id="goalPromoter" class="gs-input"><option>Eddy</option><option>Dani</option><option>Ambos</option></select>
-              </label>
-              <label class="gs-field"><span>Fecha límite</span>
-                <input id="goalDeadline" class="gs-input" placeholder="yyyy-mm-dd"/>
-              </label>
-              <label class="gs-field md:col-span-2"><span>Meta</span>
-                <input id="goalTitle" class="gs-input" />
-              </label>
-              <label class="gs-field"><span>Estado</span>
-                <select id="goalStatus" class="gs-input">
-                  <option value="plan">Plan</option><option value="en_curso">En curso</option><option value="pausada">Pausada</option><option value="cumplida">Cumplida</option>
+              <label class="gs-field">
+                <span>Promotor</span>
+                <select id="goalPromoter" class="gs-input">
+                  <option>Eddy</option><option>Dani</option><option>Ambos</option>
                 </select>
               </label>
-              <label class="gs-field"><span>Progreso %</span>
-                <input id="goalProgress" type="number" min="0" max="100" class="gs-input"/>
+              <label class="gs-field">
+                <span>Fecha límite</span>
+                <input id="goalDeadline" class="gs-input" placeholder="yyyy-mm-dd"/>
               </label>
-              <label class="gs-field md:col-span-2"><span>Notas</span>
-                <textarea id="goalNotes" rows="3" class="gs-input"></textarea>
+              <label class="gs-field md:col-span-2">
+                <span>Meta</span>
+                <input id="goalTitle" class="gs-input"/>
+              </label>
+              <label class="gs-field">
+                <span>Estado</span>
+                <select id="goalStatus" class="gs-input">
+                  <option value="plan">Plan</option>
+                  <option value="en_curso">En curso</option>
+                  <option value="pausada">Pausada</option>
+                  <option value="cumplida">Cumplida</option>
+                </select>
+              </label>
+              <label class="gs-field">
+                <span>Progreso %</span>
+                <input id="goalProgress" type="number" min="0" max="100" class="gs-input" />
+              </label>
+              <label class="gs-field md:col-span-2">
+                <span>Notas</span>
+                <textarea id="goalNotes" class="gs-input" rows="3"></textarea>
               </label>
             </div>
             <div class="mt-4 flex items-center justify-between">
@@ -234,52 +256,74 @@
         </dialog>
       </section>
 
-      <!-- LUCES -->
+      <!-- Luces -->
       <section id="view-luces" class="hidden-vis">
         <div class="gs-card p-4">
-          <div class="flex items-center gap-2 mb-3">
-            <select id="lightsRangeType" class="gs-input">
-              <option value="week">Semana</option><option value="month">Mes</option>
-            </select>
-            <input id="lightsRangeStart" class="gs-input" placeholder="yyyy-mm-dd" />
-            <select id="lightsWho" class="gs-input">
-              <option value="Todos">Todos</option><option value="Eddy">Eddy</option><option value="Dani">Dani</option>
-            </select>
-            <button id="addLightBtn" class="gs-icon-btn" title="Agregar">
-              <svg viewBox="0 0 24 24" class="icon-sm"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-            </button>
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-lg font-semibold">Luces</h3>
+            <div class="flex items-center gap-2">
+              <select id="lightsRangeType" class="gs-input">
+                <option value="week">Semana</option>
+                <option value="month">Mes</option>
+              </select>
+              <input id="lightsRangeStart" class="gs-input" placeholder="yyyy-mm-dd" />
+              <select id="lightsWho" class="gs-input">
+                <option value="Todos">Todos</option>
+                <option value="Eddy">Eddy</option>
+                <option value="Dani">Dani</option>
+              </select>
+              <button id="addLightBtn" class="gs-icon-btn" title="Agregar">
+                <svg viewBox="0 0 24 24" class="icon-sm"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              </button>
+            </div>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3" id="lightsStats"></div>
           <div id="lightsList"></div>
         </div>
 
-        <!-- Modal luz -->
+        <!-- Modal luces -->
         <dialog id="lightModal" class="gs-modal">
           <form id="lightForm" method="dialog" class="gs-modal-card">
             <div class="flex items-center justify-between mb-2">
               <h3 id="lightModalTitle" class="text-lg font-semibold">Nueva entrada</h3>
-              <button type="button" id="closeLightModal" class="gs-icon-btn" title="Cerrar">
+              <button type="button" id="closeLightModal" class="gs-icon-btn">
                 <svg viewBox="0 0 24 24" class="icon-sm"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
               </button>
             </div>
             <input id="lightId" type="hidden" />
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <label class="gs-field"><span>Fecha</span><input id="lightDate" class="gs-input" placeholder="yyyy-mm-dd" /></label>
-              <label class="gs-field"><span>Color</span>
-                <select id="lightColor" class="gs-input"><option>Rojo</option><option>Ámbar</option><option>Verde</option><option>Azul</option></select>
+              <label class="gs-field">
+                <span>Fecha</span>
+                <input id="lightDate" class="gs-input" placeholder="yyyy-mm-dd" />
               </label>
-              <label class="gs-field"><span>Quién</span>
-                <select id="lightWho" class="gs-input"><option>Eddy</option><option>Dani</option></select>
+              <label class="gs-field">
+                <span>Color</span>
+                <select id="lightColor" class="gs-input">
+                  <option>Rojo</option><option>Ámbar</option><option>Verde</option><option>Azul</option>
+                </select>
               </label>
-              <label class="gs-field"><span>Sensación</span>
+              <label class="gs-field">
+                <span>Quién</span>
+                <select id="lightWho" class="gs-input">
+                  <option>Eddy</option><option>Dani</option>
+                </select>
+              </label>
+              <label class="gs-field">
+                <span>Sensación</span>
                 <select id="lightEmotion" class="gs-input">
                   <option>feliz</option><option>muy_feliz</option><option>emocionado</option><option>agradecido</option><option>confiado</option><option>aliviado</option>
                   <option>meh</option><option>cansado</option><option>nervioso</option>
                   <option>triste</option><option>muy_triste</option><option>frustrado</option><option>estresado</option><option>ansioso</option><option>furioso</option>
                 </select>
               </label>
-              <label class="gs-field md:col-span-2"><span>Acción</span><input id="lightAction" class="gs-input" /></label>
-              <label class="gs-field md:col-span-2"><span>Notas</span><textarea id="lightNotes" class="gs-input" rows="3"></textarea></label>
+              <label class="gs-field md:col-span-2">
+                <span>Acción</span>
+                <input id="lightAction" class="gs-input" />
+              </label>
+              <label class="gs-field md:col-span-2">
+                <span>Notas</span>
+                <textarea id="lightNotes" class="gs-input" rows="3"></textarea>
+              </label>
             </div>
             <div class="mt-4 flex items-center justify-between">
               <button type="button" id="deleteLightBtn" class="gs-btn danger hidden-vis">Borrar</button>
@@ -289,10 +333,11 @@
         </dialog>
       </section>
 
-      <!-- JUEGOS -->
+      <!-- Juegos -->
       <section id="view-juegos" class="hidden-vis">
         <div class="gs-card p-4">
-          <div class="flex items-center gap-2 mb-3">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-lg font-semibold">Juegos</h3>
             <button id="addGameBtn" class="gs-icon-btn" title="Agregar">
               <svg viewBox="0 0 24 24" class="icon-sm"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
             </button>
@@ -305,47 +350,66 @@
           <form id="gameForm" method="dialog" class="gs-modal-card">
             <div class="flex items-center justify-between mb-2">
               <h3 id="gameModalTitle" class="text-lg font-semibold">Nuevo juego</h3>
-              <button type="button" id="closeGameModal" class="gs-icon-btn" title="Cerrar">
+              <button type="button" id="closeGameModal" class="gs-icon-btn">
                 <svg viewBox="0 0 24 24" class="icon-sm"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
               </button>
             </div>
             <input id="gameId" type="hidden" />
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <label class="gs-field"><span>Fecha</span><input id="gameDate" class="gs-input" placeholder="yyyy-mm-dd"></label>
-              <label class="gs-field"><span>Tipo</span>
+              <label class="gs-field">
+                <span>Fecha</span>
+                <input id="gameDate" class="gs-input" placeholder="yyyy-mm-dd"/>
+              </label>
+              <label class="gs-field">
+                <span>Tipo</span>
                 <select id="gameKind" class="gs-input"><option value="juego">Juego</option><option value="mini">Mini-juego</option></select>
               </label>
-              <label class="gs-field"><span>Promotor</span>
+              <label class="gs-field">
+                <span>Promotor</span>
                 <select id="gamePromoter" class="gs-input"><option>Eddy</option><option>Dani</option><option>Ambos</option></select>
               </label>
-              <label class="gs-field"><span>Condón</span>
+              <label class="gs-field">
+                <span>Condón</span>
                 <select id="gameCondom" class="gs-input"><option value="true">Sí</option><option value="false">No</option></select>
               </label>
-              <label class="gs-field"><span>Rol</span>
+              <label class="gs-field">
+                <span>Rol</span>
                 <select id="gameRole" class="gs-input">
-                  <option>Eddy→Dani</option><option>Dani→Eddy</option><option>Ambos versátiles</option>
+                  <option>Ambos versátiles</option>
+                  <option>Eddy→Dani</option>
+                  <option>Dani→Eddy</option>
                 </select>
               </label>
-              <label class="gs-field"><span>Juguetes</span>
+              <label class="gs-field">
+                <span>Juguetes</span>
                 <select id="gameToys" class="gs-input"><option value="false">No</option><option value="true">Sí</option></select>
               </label>
-              <label class="gs-field"><span>Juguetes con</span><input id="gameToysWith" class="gs-input" list="locList" placeholder="Eddy/Dani/Ambos" /></label>
-              <label class="gs-field"><span>Lechita</span>
+              <label class="gs-field">
+                <span>Juguetes con</span>
+                <input id="gameToysWith" class="gs-input" />
+              </label>
+              <label class="gs-field">
+                <span>Lechita</span>
                 <select id="gameCream" class="gs-input"><option>Ninguno</option><option>Eddy→Dani</option><option>Dani→Eddy</option></select>
               </label>
-              <label class="gs-field md:col-span-2"><span>Lugar</span>
-                <input id="gameLocation" class="gs-input" list="locList" />
+              <label class="gs-field">
+                <span>Lugar</span>
+                <input id="gameLocation" list="locList" class="gs-input"/>
                 <datalist id="locList"></datalist>
               </label>
-              <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-3">
-                <label class="gs-field"><span>Prácticas</span>
-                  <div id="practicesChecklist" class="grid grid-cols-2 gap-2 border border-black/10 rounded-lg p-2"></div>
-                </label>
-                <label class="gs-field"><span>Satisfacción <span id="satisfactionGauge" class="inline-block ml-2 align-middle"></span></span>
-                  <input id="gameSatisfaction" type="range" min="1" max="10" value="7" class="w-full">
-                </label>
+              <label class="gs-field">
+                <span>Satisfacción</span>
+                <input id="gameSatisfaction" type="range" min="1" max="10" value="7" class="w-full"/>
+              </label>
+              <div class="flex items-center justify-center" id="satisfactionGauge"></div>
+              <label class="gs-field md:col-span-2">
+                <span>Notas</span>
+                <textarea id="gameNotes" class="gs-input" rows="3"></textarea>
+              </label>
+              <div class="md:col-span-2">
+                <div class="text-xs opacity-70 mb-1">Prácticas</div>
+                <div id="practicesChecklist" class="grid grid-cols-1 md:grid-cols-3 gap-2"></div>
               </div>
-              <label class="gs-field md:col-span-2"><span>Notas</span><textarea id="gameNotes" rows="3" class="gs-input"></textarea></label>
             </div>
             <div class="mt-4 flex items-center justify-between">
               <button type="button" id="deleteGameBtn" class="gs-btn danger hidden-vis">Borrar</button>
@@ -355,11 +419,12 @@
         </dialog>
       </section>
 
-      <!-- AJUSTES -->
-      <section id="view-ajustes" class="hidden-vis grid gap-4">
+      <!-- Ajustes (Contactos + Prácticas) -->
+      <section id="view-ajustes" class="hidden-vis space-y-6">
         <!-- Contactos -->
         <div class="gs-card p-4">
-          <div class="flex items-center gap-2 mb-2">
+          <div class="flex items-center gap-2 mb-3">
+            <h3 class="text-lg font-semibold">Ajustes · Contactos</h3>
             <select id="filterStatus" class="gs-input">
               <option value="">Todos</option>
               <option value="Bloqueado">Bloqueado</option>
@@ -376,7 +441,6 @@
           <div id="contactsList"></div>
         </div>
 
-        <!-- Modal contacto -->
         <dialog id="contactModal" class="gs-modal">
           <form id="contactForm" method="dialog" class="gs-modal-card">
             <div class="flex items-center justify-between mb-2">
@@ -390,20 +454,23 @@
               <label class="gs-field"><span>Owner</span>
                 <select id="ownerInput" class="gs-input"><option>Eddy</option><option>Dani</option></select>
               </label>
+              <label class="gs-field"><span>Nombre</span><input id="nameInput" class="gs-input"/></label>
+              <label class="gs-field md:col-span-2"><span>Alias</span><input id="aliasInput" class="gs-input"/></label>
               <label class="gs-field"><span>Clasificación</span>
                 <select id="categoryInput" class="gs-input"><option>Rojo</option><option>Ámbar</option><option>Verde</option><option>Azul</option></select>
               </label>
-              <label class="gs-field"><span>Nombre / Alias</span><input id="nameInput" class="gs-input" /></label>
-              <label class="gs-field"><span>Alias</span><input id="aliasInput" class="gs-input" /></label>
-              <label class="gs-field"><span>Estado</span>
+              <label class="gs-field"><span>Estado Actual</span>
                 <select id="statusInput" class="gs-input">
-                  <option>Bloqueado</option><option>Silenciado</option><option>Archivado</option><option>Eliminado</option><option>Inaccesible</option><option>Conservado</option>
+                  <option>Eliminado</option><option>Bloqueado</option><option>Silenciado</option>
+                  <option>Archivado</option><option>Inaccesible</option><option>Conservado</option>
                 </select>
               </label>
-              <label class="gs-field"><span>Trato</span>
-                <input id="treatmentInput" class="gs-input" placeholder="Eliminar / Bloquear / Silenciar / Mantener / Archivar / Responder y bloquear / Responder y eliminar" />
+              <label class="gs-field md:col-span-2"><span>Trato</span>
+                <input id="treatmentInput" class="gs-input" placeholder="Eliminar, Bloquear, Silenciar, Mantener..." />
               </label>
-              <label class="gs-field md:col-span-2"><span>Notas</span><textarea id="notesInput" rows="3" class="gs-input"></textarea></label>
+              <label class="gs-field md:col-span-2"><span>Notas</span>
+                <textarea id="notesInput" class="gs-input" rows="3"></textarea>
+              </label>
             </div>
             <div class="mt-4 flex items-center justify-between">
               <button type="button" id="deleteBtn" class="gs-btn danger hidden-vis">Borrar</button>
@@ -412,21 +479,10 @@
           </form>
         </dialog>
 
-        <!-- Cat. de acuerdos -->
-        <div class="gs-card p-4">
-          <div class="flex items-center gap-2 mb-2">
-            <h3 class="font-semibold">Ajustes · Categorías de Acuerdos</h3>
-            <button id="addAgreCatBtn" class="gs-icon-btn" title="Agregar">
-              <svg viewBox="0 0 24 24" class="icon-sm"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-            </button>
-          </div>
-          <div id="agreCatsList"></div>
-        </div>
-
         <!-- Prácticas -->
         <div class="gs-card p-4">
-          <div class="flex items-center gap-2 mb-2">
-            <h3 class="font-semibold">Ajustes · Prácticas</h3>
+          <div class="flex items-center gap-2 mb-3">
+            <h3 class="text-lg font-semibold">Ajustes · Prácticas</h3>
             <button id="addPracticeBtn" class="gs-icon-btn" title="Agregar">
               <svg viewBox="0 0 24 24" class="icon-sm"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
             </button>
@@ -437,12 +493,9 @@
     </section>
   </main>
 
-  <div id="toastHost" class="fixed bottom-4 right-4 space-y-2"></div>
+  <div id="toastHost" class="fixed left-4 bottom-4 space-y-2 z-50"></div>
 
-  <!-- Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.5/dist/umd/supabase.js"></script>
-  <!-- App -->
-  <script src="./app.js?v=0.4.10"></script>
-  <script src="./ui.js?v=0.4.10"></script>
+  <script src="./app.js"></script>
+  <script src="./ui.js"></script>
 </body>
 </html>
