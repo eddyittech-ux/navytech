@@ -9,7 +9,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
 
   <!-- Flatpickr (fecha bonita) -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
   <!-- Supabase -->
@@ -17,55 +18,125 @@
 
   <!-- NAVYTECH quick CSS patch v0.5.3 -->
 <style id="nt-quick">
-  /* Tokens suaves (no rompen tu tema) */
   :root{
-    --nt-bg:#0b1220; --nt-card:#111a2a; --nt-text:#eaf0ff;
-    --nt-border:#243047; --nt-accent:#C7A740;
+    --nt-bg: #0B1220;            /* fondo app */
+    --nt-card: #121A2A;          /* tarjetas / modales */
+    --nt-elev: #0F1627;          /* elevación leve */
+    --nt-soft: #1C2740;          /* contenedores/inputs */
+    --nt-line: #2C3753;          /* bordes suaves */
+    --nt-text: #E7ECF5;          /* texto principal */
+    --nt-muted: #97A4BD;         /* texto tenue */
+    --nt-focus: #C7A740;         /* dorado marca */
+    --nt-danger:#ef4444;
+    --nt-green: #22c55e;
   }
 
-  /* Modal y campos bonitos */
-  dialog::backdrop{ background: rgba(0,0,0,.45); }
-  dialog.gs-modal{
-    border:0; border-radius:16px; background:#0f1625; color:#e8edf6;
-    box-shadow: 0 20px 60px rgba(0,0,0,.45);
-    max-width:680px; width:calc(100% - 2rem); padding:18px 20px;
-  }
-  .gs-modal .row{ display:grid; grid-template-columns: 1fr 1fr; gap:16px; }
-  .gs-field{ display:flex; flex-direction:column; gap:6px; }
-  .gs-field label{ font-size:.85rem; opacity:.8; }
-  .gs-input,.gs-select,.gs-textarea{
-    background:#0a1120; color:#e8edf6; border:1px solid var(--nt-border);
-    border-radius:10px; padding:10px 12px; outline:none;
-  }
-  .gs-input:focus,.gs-select:focus,.gs-textarea:focus{
-    border-color:var(--nt-accent); box-shadow:0 0 0 3px rgba(199,167,64,.15);
-  }
-  .gs-textarea{ min-height:110px; resize:vertical; }
-  .gs-actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:14px; }
-  .gs-btn.primary{
-    background:var(--nt-accent); color:#101826; border:0;
-    border-radius:10px; padding:10px 14px; font-weight:600;
-  }
+  /* ===== Layout base ===== */
+  body{ background: var(--nt-bg); color: var(--nt-text); }
+  .gs-card{ background: var(--nt-card); border: 1px solid #0f1a2c; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,.35); }
 
-  /* Asegura calendario por encima del modal */
-  .flatpickr-calendar{ z-index: 99999 !important; }
-
-  /* (Opcional) estilos base por si faltan en tu build */
-  .gs-card{
-    background: var(--nt-card); color: var(--nt-text);
-    border:1px solid var(--nt-border); border-radius:14px;
-    box-shadow: 0 10px 24px rgba(0,0,0,.25);
-  }
+  /* ===== Botones genéricos ===== */
   .gs-btn{
-    background:transparent; color:var(--nt-text); cursor:pointer;
-    border:1px solid var(--nt-border); padding:8px 12px; border-radius:10px;
+    display:inline-flex;align-items:center;gap:.5rem;
+    padding:.55rem .8rem;border-radius:12px;border:1px solid var(--nt-line);
+    background: var(--nt-elev); color: var(--nt-text);
+    transition:.2s; font-weight:600;
   }
-  .gs-btn:hover{ border-color:var(--nt-accent); }
+  .gs-btn:hover{ transform: translateY(-1px); border-color: var(--nt-focus); }
+  .gs-btn[disabled]{ opacity:.5; pointer-events:none; }
+
+  /* ===== Chips y contadores ===== */
   .gs-chip{
     display:inline-flex; align-items:center; gap:.4rem;
-    border:1px solid var(--nt-border); padding:.15rem .5rem; border-radius:999px;
+    padding:.25rem .5rem; border:1px solid var(--nt-line);
+    border-radius:999px; background: var(--nt-elev); font-size:.8rem; color:var(--nt-muted);
   }
+
+  /* ===== Modal (dialog) ===== */
+  dialog{ inset:unset; }
+  dialog.nt-modal{
+    border:none; padding:0; background: transparent; max-width: 720px; width:clamp(340px,92vw,720px);
+  }
+  dialog.nt-modal::backdrop{
+    backdrop-filter: blur(6px);
+    background: rgba(5,10,18,.55);
+  }
+  .nt-panel{
+    background: linear-gradient(180deg, var(--nt-card), var(--nt-elev));
+    border:1px solid var(--nt-line);
+    border-radius: 18px;
+    overflow:hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.03) inset;
+  }
+  .nt-header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 16px 18px; border-bottom:1px solid var(--nt-line);
+  }
+  .nt-title{ font-size:1.05rem; font-weight:700; letter-spacing:.2px; }
+  .nt-close{
+    inline-size:36px; block-size:36px; display:grid; place-items:center;
+    border:1px solid var(--nt-line); border-radius:12px; background:var(--nt-elev); color:var(--nt-muted);
+  }
+  .nt-close:hover{ color:var(--nt-text); border-color:var(--nt-focus); }
+
+  .nt-body{ padding: 18px; }
+  .nt-grid{
+    display:grid; gap:14px;
+    grid-template-columns: 1fr 1fr;
+  }
+  .nt-grid .full{ grid-column:1 / -1; }
+
+  /* ===== Inputs bonitos dentro del modal ===== */
+  dialog.nt-modal label{ font-size:.82rem; color:var(--nt-muted); display:block; margin:4px 0 6px; }
+  dialog.nt-modal input[type="text"],
+  dialog.nt-modal input[type="date"],
+  dialog.nt-modal input[type="number"],
+  dialog.nt-modal select,
+  dialog.nt-modal textarea{
+    width:100%; background: var(--nt-soft); color: var(--nt-text);
+    border:1px solid var(--nt-line); border-radius:12px;
+    padding:.65rem .8rem; outline:none; transition:.15s;
+  }
+  dialog.nt-modal select{ appearance:none; }
+  dialog.nt-modal textarea{ min-height:120px; resize:vertical; }
+
+  dialog.nt-modal input:focus,
+  dialog.nt-modal select:focus,
+  dialog.nt-modal textarea:focus{
+    border-color: var(--nt-focus);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--nt-focus) 28%, transparent);
+  }
+
+  /* Footer del modal */
+  .nt-footer{
+    display:flex; gap:.6rem; justify-content:flex-end; padding:16px 18px;
+    border-top:1px solid var(--nt-line); background: linear-gradient(180deg, var(--nt-elev), transparent);
+  }
+  .nt-primary{ background: var(--nt-focus); border-color: #b79a35; color:#111; }
+  .nt-primary:hover{ filter: brightness(1.03); }
+  .nt-danger{ border-color:#5a1f1f; background:#281216; color:#f3b4b4; }
+  .nt-danger:hover{ border-color:#8d2a2a; }
+
+  /* ===== Tarjetas de lista “luces” ===== */
+  .light-item{ border:1px solid var(--nt-line); border-radius:16px; padding:14px; background:var(--nt-card); }
+  .light-item .meta{ color:var(--nt-muted); font-size:.86rem; }
+  .light-item .actions{ display:flex; gap:.4rem; }
+  .icon-btn{
+    inline-size:36px; block-size:36px; display:grid; place-items:center;
+    border:1px solid var(--nt-line); background:var(--nt-elev); border-radius:12px; color:var(--nt-muted);
+  }
+  .icon-btn:hover{ color:var(--nt-text); border-color:var(--nt-focus); }
+
+  /* ===== Contadores por color ===== */
+  .pill{ background: var(--nt-card); border:1px solid var(--nt-line); border-radius:14px; padding:.7rem 1rem; }
+  .dot{ inline-size:.6rem; block-size:.6rem; border-radius:999px; display:inline-block; }
+  .dot.red{ background:#ef4444; } .dot.amber{ background:#f59e0b; }
+  .dot.green{ background:#22c55e; } .dot.blue{ background:#60a5fa; }
+
+  /* ===== Calendario siempre arriba ===== */
+  .flatpickr-calendar{ z-index: 99999 !important; }
 </style>
+
 
 </head>
 <body class="h-full bg-slate-900 text-slate-100">
@@ -164,7 +235,7 @@
       </section>
 
       <!-- LUCES -->
-  <section id="view-luces" class="hidden-vis">
+<section id="view-luces" class="hidden-vis">
   <div class="gs-card p-4">
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-xl font-semibold">Luces</h2>
@@ -174,17 +245,22 @@
           <option>Semana</option>
           <option>Mes</option>
         </select>
-        <!-- Fecha ancla (usa flatpickr si está) -->
+
+        <!-- Fecha ancla -->
         <input id="lightsRangeStart" class="gs-input w-[160px]" placeholder="dd/mm/aaaa" />
-        <!-- Filtro quién -->
+
+        <!-- Filtro: Quién -->
         <select id="lightsWho" class="gs-input w-[110px]">
           <option>Todos</option>
           <option>Eddy</option>
           <option>Dani</option>
         </select>
+
         <!-- FAB + -->
         <button id="addLightBtn" class="gs-btn rounded-full w-9 h-9 flex items-center justify-center" title="Agregar">
-          <svg class="icon-sm" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
         </button>
       </div>
     </div>
@@ -196,62 +272,71 @@
     <div id="lightsList" class="flex flex-col gap-3"></div>
   </div>
 
-  <!-- Modal -->
-  <dialog id="lightModal" class="gs-modal">
-    <form id="lightForm" method="dialog" class="gs-modal-card">
-      <div class="flex items-center justify-between mb-3">
-        <div id="lightModalTitle" class="text-lg font-semibold">Nueva entrada</div>
-        <button type="button" id="closeLightModal" class="gs-btn">
-          <svg class="icon-sm" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6l-12 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-        </button>
+  <!-- ÚNICO MODAL (dialog) -->
+  <dialog id="lightModal" class="nt-modal">
+    <form id="lightForm" method="dialog" class="nt-panel">
+      <div class="nt-header">
+        <div id="lightModalTitle" class="nt-title">Nueva entrada</div>
+        <button type="button" class="nt-close" id="closeLightModal" aria-label="Cerrar">✕</button>
       </div>
 
-      <input type="hidden" id="lightId" />
+      <div class="nt-body">
+        <input type="hidden" id="lightId" />
+        <div class="nt-grid">
+          <div>
+            <label for="lightDate">Fecha</label>
+            <input id="lightDate" type="text" />
+          </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label class="gs-label">Fecha</label>
-          <input id="lightDate" class="gs-input" placeholder="dd/mm/aaaa" />
-        </div>
-        <div>
-          <label class="gs-label">Color</label>
-          <select id="lightColor" class="gs-input">
-            <option>Verde</option>
-            <option>Ámbar</option>
-            <option>Rojo</option>
-            <option>Azul</option>
-          </select>
-        </div>
-        <div>
-          <label class="gs-label">Quién</label>
-          <select id="lightWho" class="gs-input">
-            <option>Eddy</option>
-            <option>Dani</option>
-          </select>
-        </div>
-        <div>
-          <label class="gs-label">Sensación</label>
-          <select id="lightEmotion" class="gs-input"></select>
-        </div>
-        <div class="sm:col-span-2">
-          <label class="gs-label">Acción</label>
-          <input id="lightAction" class="gs-input" placeholder="Describe lo que pasó" />
-        </div>
-        <div class="sm:col-span-2">
-          <label class="gs-label">Notas</label>
-          <textarea id="lightNotes" class="gs-input" rows="3"></textarea>
+          <div>
+            <label for="lightColor">Color</label>
+            <select id="lightColor">
+              <option>Verde</option>
+              <option>Ámbar</option>
+              <option>Rojo</option>
+              <option>Azul</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="lightWho">Quién</label>
+            <select id="lightWho">
+              <option>Eddy</option>
+              <option>Dani</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="lightEmotion">Sensación</label>
+            <!-- Se llena dinámicamente desde light_emotions -->
+            <select id="lightEmotion"></select>
+          </div>
+
+          <div class="full">
+            <label for="lightAction">Acción</label>
+            <input id="lightAction" type="text" placeholder="Describe lo que pasó" />
+          </div>
+
+          <div class="full">
+            <label for="lightNotes">Notas</label>
+            <textarea id="lightNotes" rows="4"></textarea>
+          </div>
         </div>
       </div>
 
-      <div class="mt-4 flex items-center justify-end gap-2">
-        <button type="button" id="deleteLightBtn" class="gs-btn">
-          <svg class="icon-sm" viewBox="0 0 24 24" fill="none"><path d="M6 7h12M10 11v6M14 11v6M9 7l1-2h4l1 2M7 7l1 12h8l1-12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <div class="nt-footer">
+        <button type="button" class="gs-btn nt-danger" id="deleteLightBtn" title="Borrar">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none">
+            <path d="M6 7h12M10 11v6M14 11v6M9 7l1-2h4l1 2M7 7l1 12h8l1-12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+          Borrar
         </button>
-        <button class="gs-btn-primary">Guardar</button>
+        <button type="submit" class="gs-btn nt-primary">Guardar</button>
       </div>
     </form>
   </dialog>
 </section>
+
 
       <!-- ===== Vista: Juegos ===== -->
 <section id="view-juegos" class="hidden-vis">
@@ -561,6 +646,7 @@
   
 </body>
 </html>
+
 
 
 
