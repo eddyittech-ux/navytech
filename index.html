@@ -507,15 +507,22 @@
   </dialog>
 
   <!-- Core + secciones -->
-  <script type="module" src="app.js"></script>        <!-- Servicios Supabase + auth -->
-  <script type="module" src="ui.js"></script>         <!-- Router/tema (si lo usas) -->
-  <script type="./sections/luces.js"></script>     <!-- ESTE archivo -->
-  <script src="./sections/resumen.js"></script>
-  <script src="./sections/acuerdos.js"></script>
-  <script src="./sections/ajustes.js"></script>
-  <script src="./sections/juegos.js"></script>
-  <script src="./sections/metas.js"></script>
+<script type="module" src="app.js"></script>            <!-- cliente supabase + servicios en window.NT -->
+
+<!-- Secciones (todas como módulos y con la RUTA correcta) -->
+<script type="module" src="./sections/resumen.js"></script>
+<script type="module" src="./sections/acuerdos.js"></script>
+<script type="module" src="./sections/ajustes.js"></script>
+<script type="module" src="./sections/luces.js"></script>   <!-- luces -->
+<script type="module" src="./sections/juegos.js"></script>   <!-- juegos -->
+<script type="module" src="./sections/metas.js"></script>
+
+<!-- Router/tema SIEMPRE al final -->
+<script type="module" src="ui.js"></script>
+
+  
 </body>
 </html>
+
 
 
