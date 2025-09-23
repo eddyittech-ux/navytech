@@ -7,7 +7,7 @@
   const qsa = (s, el=document) => [...el.querySelectorAll(s)];
   const esc = (s='') => String(s).replace(/[&<>"'`=\/]/g, c => ({'&':'&amp;','<':'&lt;','>':'&quot;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D;'}[c]));
   const show= (el,v=true)=> el&&el.classList.toggle('hidden-vis',!v);
-  const supa = window.NT?._supa || window.NT?.sb;
+  const supa = window.NT?.supa;
 
   const todayISO = () => new Date().toISOString().slice(0,10);
   const monthStart = () => { const d=new Date(); d.setDate(1); return d.toISOString().slice(0,10); };
