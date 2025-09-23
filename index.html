@@ -133,7 +133,8 @@ dialog.nt-modal::backdrop{ backdrop-filter: blur(6px); background: rgba(5,10,18,
 <body class="h-full">
 
   <!-- Nav -->
-  <header class="w-full border-b border-white/10">
+  <header class="w-full" style="border-bottom:1px solid var(--nt-line);">
+
     <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
       <nav id="mainNav" class="flex items-center gap-6">
         <a href="#/resumen" class="nav-link">Resumen</a>
@@ -524,24 +525,22 @@ dialog.nt-modal::backdrop{ backdrop-filter: blur(6px); background: rgba(5,10,18,
 
   <!-- ... tu HTML de vistas ... -->
 
-<!-- JS: carga ordenada -->
-<script type="module" src="app.js?v=0.5.3"></script>
+<script type="module" src="app.js?v=0.7.0"></script>
 
-<!-- Secciones (una sola vez cada una, con defer) -->
-<script defer src="./sections/luces.js?v=0.5.3"></script>
-<script defer src="./sections/juegos.js?v=0.5.3"></script>
-<script defer src="./sections/resumen.js?v=0.5.3"></script>
-<script defer src="./sections/acuerdos.js?v=0.5.3"></script>
-<script defer src="./sections/ajustes.js?v=0.5.3"></script>
-<script defer src="./sections/metas.js?v=0.5.3"></script>
+<script defer src="./sections/luces.js?v=0.7.0"></script>
+<script defer src="./sections/juegos.js?v=0.7.0"></script>
+<script defer src="./sections/resumen.js?v=0.7.0"></script>
+<script defer src="./sections/acuerdos.js?v=0.7.0"></script>
+<script defer src="./sections/ajustes.js?v=0.7.0"></script>
+<script defer src="./sections/metas.js?v=0.7.0"></script>
 
-<!-- UI/router si lo estás usando -->
-<script defer src="ui.js?v=0.5.3"></script>
+<script defer src="ui.js?v=0.7.0"></script>
 
 
   
 </body>
 </html>
+
 
 
 
