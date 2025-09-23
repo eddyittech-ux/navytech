@@ -1,7 +1,7 @@
 // app.js v0.6 — cliente Supabase + servicios con alias compatibles
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const SUPABASE_URL  = 'https://zhavnscqhedrvcoeb.supabase.co';
+const SUPABASE_URL  = 'https://zhavnscqhsedrvokeocb.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpoYXZuc2NxaHNlZHJ2b2tlb2NiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0ODQ1MDcsImV4cCI6MjA3NDA2MDUwN30.Lace39ORNPoDb5iGz8_hlRTRhH3I1JhvD5sPKwzOiys';
 
 // Cliente supabase (nombre CONSISTENTE: "supa")
