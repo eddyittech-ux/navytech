@@ -1,91 +1,248 @@
-// section/luces.js — v1.2 anti-dobles
+// sections/luces.js  — v0.6
+// Módulo autónomo para "Luces" (no toca otras secciones)
+
 (() => {
-  if (window.__NT_LUCES_ONCE) return;          // ⬅️ evita ejecutar el módulo dos veces
+  // Evita cargar dos veces este módulo
+  if (window.__NT_LUCES_ONCE) return;
   window.__NT_LUCES_ONCE = true;
 
-  const qs  = (s, el=document) => el.querySelector(s);
-  const qsa = (s, el=document) => [...el.querySelectorAll(s)];
-  const esc = (s='') => String(s).replace(/[&<>"'`=\/]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D;'}[c]));
-  const show= (el,v=true)=> el&&el.classList.toggle('hidden-vis',!v);
-  const toISO = (d)=> new Date(d).toISOString().slice(0,10);
-  const colorHex = {Rojo:'#ef4444','Ámbar':'#f59e0b',Verde:'#22c55e',Azul:'#60a5fa'};
+  // ---------- helpers ----------
+  const qs  = (s,el=document)=>el.querySelector(s);
+  const qsa = (s,el=document)=>[...el.querySelectorAll(s)];
+  const $$  = (el, show=true)=> el && el.classList.toggle('hidden-vis', !show);
+  const esc = (s='') => String(s).replace(/[&<>"'`=\/]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D;'}[c]));
 
-  const supa = window.NT?._supa || window.NT?.sb; // fallback
-
-  function colorDot(c){ const col=colorHex[c]||'#9ca3af'; return `<span class="inline-block w-2.5 h-2.5 rounded-full" style="background:${col}"></span>`; }
-  const emoIcon = (key) => {
-    const base='currentColor';
-    const faces = {
-      feliz:`<circle cx="12" cy="12" r="10" stroke="${base}" fill="none"/><circle cx="9" cy="10" r="1.2" fill="${base}"/><circle cx="15" cy="10" r="1.2" fill="${base}"/><path d="M8.5 14c1.5 2 5.5 2 7 0" stroke="${base}" stroke-width="1.6" stroke-linecap="round"/>`,
-      muy_feliz:`<circle cx="12" cy="12" r="10" stroke="${base}" fill="none"/><circle cx="9" cy="10" r="1.2" fill="${base}"/><circle cx="15" cy="10" r="1.2" fill="${base}"/><path d="M7.5 14c2.5 3 6.5 3 9 0" stroke="${base}" stroke-width="1.6" stroke-linecap="round"/>`,
-      emocionado:`<circle cx="12" cy="12" r="10" stroke="${base}" fill="none"/><circle cx="9" cy="10" r="1.2" fill="${base}"/><circle cx="15" cy="10" r="1.2" fill="${base}"/><path d="M8 14c2 2 4 2 8 0" stroke="${base}" stroke-width="1.6"/><path d="M12 6v2" stroke="${base}" stroke-width="1.6" stroke-linecap="round"/>`,
-      agradecido:`<circle cx="12" cy="12" r="10" stroke="${base}" fill="none"/><circle cx="9" cy="10" r="1.2" fill="${base}"/><circle cx="15" cy="10" r="1.2" fill="${base}"/><path d="M8 15c2 1 6 1 8 0" stroke="${base}" stroke-width="1.6"/><path d="M7 7l2 2M17 7l-2 2" stroke="${base}" stroke-width="1.6"/>`,
-      confiado:`<circle cx="12" cy="12" r="10" stroke="${base}" fill="none"/><circle cx="9" cy="10" r="1.2" fill="${base}"/><circle cx="15" cy="10" r="1.2" fill="${base}"/><path d="M8.5 14c1.5 2 5.5 2 7 0" stroke="${base}" stroke-width="1.6"/><path d="M7 7l2 2" stroke="${base}" stroke-width="1.6"/>`,
-      aliviado:`<circle cx="12" cy="12" r="10" stroke="${base}" fill="none"/><path d="M9 10l-1 1M16 10l-1 1" stroke="${base}" stroke-width="1.6"/><path d="M8.5 14c1.5 2 5.5 2 7 0" stroke="${base}" stroke-width="1.6"/>`,
-      meh:`<circle cx="12" cy="12" r="10" stroke="${base}" fill="none"/><circle cx="9" cy="10" r="1.2" fill="${base}"/><circle cx="15" cy="10" r="1.2" fill="${base}"/><path d="M8 15h8" stroke="${base}" stroke-width="1.6" stroke-linecap="round"/>`,
-      cansado:`<circle cx="12" cy="12" r="10" stroke="${base}" fill="none"/><path d="M8 10h2M14 10h2" stroke="${base}" stroke-width="1.6" stroke-linecap="round"/><path d="M8 15h8" stroke="${base}" stroke-width="1.6" stroke-linecap="round"/>`,
-      nervioso:`<circle cx="12" cy="12" r="10" stroke="${base}" fill="none"/><path d="M8 10l1 1M16 10l-1 1" stroke="${base}" stroke-width="1.6"/><path d="M8 16c2 0 6 0 8 0" stroke="${base}" stroke-width="1.6" stroke-dasharray="3 2"/>`,
-      triste:`<circle cx="12" cy="12" r="10" stroke="${base}" fill="none"/><circle cx="9" cy="10" r="1.2" fill="${base}"/><circle cx="15" cy="10" r="1.2" fill="${base}"/><path d="M8.5 16c1.5-2 5.5-2 7 0" stroke="${base}" stroke-width="1.6" stroke-linecap="round"/>`,
-      muy_triste:`<circle cx="12" cy="12" r="10" stroke="${base}" fill="none"/><circle cx="9" cy="10" r="1.2" fill="${base}"/><circle cx="15" cy="10" r="1.2" fill="${base}"/><path d="M7.5 17c2.5-3 6.5-3 9 0" stroke="${base}" stroke-width="1.6" stroke-linecap="round"/>`,
-      frustrado:`<circle cx="12" cy="12" r="10" stroke="${base}" fill="none"/><path d="M8 10l2-1M16 10l-2-1" stroke="${base}" stroke-width="1.6" stroke-linecap="round"/><path d="M8 16l8-1" stroke="${base}" stroke-width="1.6" />`,
-      estresado:`<circle cx="12" cy="12" r="10" stroke="${base}" fill="none"/><path d="M8 10l2 1M14 11l2-1" stroke="${base}" stroke-width="1.6"/><path d="M7 16h10" stroke="${base}" stroke-width="1.6" stroke-dasharray="2 2"/>`,
-      ansioso:`<circle cx="12" cy="12" r="10" stroke="${base}" fill="none"/><circle cx="9" cy="10" r="1" fill="${base}"/><circle cx="15" cy="12" r="1" fill="${base}"/><path d="M8 16h8" stroke="${base}" stroke-width="1.6" stroke-dasharray="1 2"/>`,
-      furioso:`<circle cx="12" cy="12" r="10" stroke="${base}" fill="none"/><path d="M8 9l2-2M16 9l-2-2" stroke="${base}" stroke-width="1.6" stroke-linecap="round"/><path d="M8.5 16c1.5-2 5.5-2 7 0" stroke="${base}" stroke-width="1.6" stroke-linecap="round"/>`,
-    };
-    const svg = faces[key] || faces.meh;
-    return `<svg class="icon-sm" viewBox="0 0 24 24" fill="none">${svg}</svg>`;
+  const colorDot = (color)=>{
+    const map={Rojo:'#ef4444','Ámbar':'#f59e0b',Verde:'#22c55e',Azul:'#60a5fa'};
+    const c = map[color] || '#9ca3af';
+    return `<span class="inline-block w-2.5 h-2.5 rounded-full" style="background:${c}"></span>`;
   };
-  const opposite = (w)=> w==='Eddy'?'Dani':'Eddy';
+  const opposite = (w)=> w==='Eddy' ? 'Dani' : 'Eddy';
 
-  const state = {
-    rangeType: 'week',
-    startISO: (()=>{ const d=new Date(); const wd=(d.getDay()+6)%7; d.setDate(d.getDate()-wd); return toISO(d); })(),
-    who: 'Todos',
-    emotions: [],
-    bound:false,
-    savingLight:false
-  };
+  // Rango por semana/mes
+  function rangeFrom(type, anchorIso){
+    const d = anchorIso? new Date(anchorIso) : new Date();
+    if (type==='week'){ const day = (d.getDay()+6)%7; d.setDate(d.getDate()-day); }
+    else { d.setDate(1); }
+    return d.toISOString().slice(0,10);
+  }
+
+  // ---------- plantilla modal (dialog) ----------
+  function ensureModal(){
+    let modal = qs('#nt-light-modal');
+    if (modal) return modal;
+
+    // Un <dialog> con z-index alto; inputs grandes; textarea amplia; toolbar limpia
+    const tpl = document.createElement('dialog');
+    tpl.id = 'nt-light-modal';
+    tpl.className = 'rounded-2xl p-0 bg-[#121821] text-white shadow-2xl';
+    tpl.style.width = 'min(720px, 92vw)';
+    tpl.style.border = '1px solid rgba(255,255,255,0.08)';
+    tpl.innerHTML = `
+      <form method="dialog" class="w-full">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-white/10">
+          <h3 class="text-base font-semibold">Nueva entrada</h3>
+          <button type="button" id="nt-light-close" class="gs-btn">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M6 6l12 12M6 18L18 6"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="px-5 py-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs opacity-70 mb-1">Fecha</label>
+            <input id="lightDate" class="nt-input w-full" placeholder="yyyy-mm-dd" />
+          </div>
+
+          <div>
+            <label class="block text-xs opacity-70 mb-1">Color</label>
+            <select id="lightColor" class="nt-select w-full">
+              <option>Verde</option>
+              <option>Ámbar</option>
+              <option>Rojo</option>
+              <option>Azul</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs opacity-70 mb-1">Quién</label>
+            <select id="lightWho" class="nt-select w-full">
+              <option>Eddy</option>
+              <option>Dani</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs opacity-70 mb-1">Sensación</label>
+            <select id="lightEmotion" class="nt-select w-full"></select>
+            <!-- Se llena con labels de light_emotions -->
+          </div>
+
+          <div class="md:col-span-2">
+            <label class="block text-xs opacity-70 mb-1">Acción</label>
+            <textarea id="lightAction" rows="4" class="nt-textarea w-full" placeholder="¿Qué pasó?"></textarea>
+          </div>
+
+          <div class="md:col-span-2">
+            <label class="block text-xs opacity-70 mb-1">Notas</label>
+            <textarea id="lightNotes" rows="3" class="nt-textarea w-full" placeholder="(Opcional)"></textarea>
+          </div>
+        </div>
+
+        <div class="px-5 py-4 border-t border-white/10 flex items-center justify-end gap-2">
+          <button id="nt-light-del" type="button" class="gs-btn hidden-vis" title="Eliminar">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M6 7h12M10 11v6M14 11v6M9 7l1-2h4l1 2M7 7l1 12h8l1-12"/>
+            </svg>
+          </button>
+          <button id="nt-light-save" type="button" class="gs-btn">Guardar</button>
+        </div>
+      </form>
+    `;
+    document.body.appendChild(tpl);
+
+    // Estilos mínimos reutilizables (inputs grandes y suaves)
+    if (!qs('#nt-input-styles')) {
+      const style = document.createElement('style');
+      style.id = 'nt-input-styles';
+      style.textContent = `
+        .nt-input,.nt-select,.nt-textarea{
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 12px; padding: .6rem .8rem; outline: none;
+        }
+        .nt-input:focus,.nt-select:focus,.nt-textarea:focus{
+          border-color: #C7A740; box-shadow: 0 0 0 3px rgba(199,167,64,.15);
+        }
+        dialog::backdrop{ background: rgba(0,0,0,.55); }
+      `;
+      document.head.appendChild(style);
+    }
+
+    return tpl;
+  }
+
+  // ---------- estado ----------
+  let emotions = [];   // [{key,label,active}, ...]
+  let fpLight = null;
+  let saving = false;
+  let currentEditId = null;
+
+  // ---------- UI ----------
+  function hooks(){
+    const sec = qs('#view-luces');
+    if (!sec) return;
+
+    // barra de filtros (añadimos filtro "quién")
+    const filtersBar = qs('#nt-lights-bar');
+    if (!filtersBar) {
+      // crea cabecera y contadores si no existen
+      const wrap = sec.querySelector('.gs-card') || sec;
+      // En tu HTML ya hay contadores y selects; sólo añadimos filtro "quién" si falta:
+      const whoSelId = 'lightsWhoFilter';
+      if (!qs('#'+whoSelId, wrap)){
+        const bar = qs('.nt-lights-filters', wrap) || document.createElement('div');
+        bar.className = 'nt-lights-filters mt-3 flex gap-3 items-center';
+        bar.id = 'nt-lights-bar';
+
+        const whoSel = document.createElement('select');
+        whoSel.id = whoSelId;
+        whoSel.className = 'nt-select';
+        whoSel.innerHTML = `<option value="">Todos</option><option value="Eddy">Eddy</option><option value="Dani">Dani</option>`;
+        bar.appendChild(whoSel);
+
+        // Botón +
+        const addBtn = qs('#addLightBtn') || (() => {
+          const b = document.createElement('button');
+          b.id='addLightBtn';
+          b.className='gs-btn';
+          b.title='Agregar';
+          b.innerHTML='<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>';
+          return b;
+        })();
+        bar.appendChild(addBtn);
+
+        wrap.prepend(bar);
+      }
+    }
+
+    // Eventos
+    qs('#lightsRangeType')?.addEventListener('change', render);
+    qs('#lightsRangeStart')?.addEventListener('change', render);
+    qs('#lightsWhoFilter')?.addEventListener('change', render);
+    qs('#addLightBtn')?.addEventListener('click', () => openModal());
+
+    // Init Flatpickr del filtro de rango si no existe
+    if (!qs('#lightsRangeStart')?._fp){
+      const start = qs('#lightsRangeStart');
+      if (start) {
+        const typeSel = qs('#lightsRangeType');
+        const anchor = rangeFrom(typeSel?.value==='Mes'?'month':'week');
+        start.value = anchor;
+      }
+    }
+
+    // Primera carga
+    render();
+  }
 
   async function loadEmotions(){
     try{
-      const rows = (await window.NT?.emotions?.list?.()) || [
-        {key:'feliz',label:'Feliz'},{key:'meh',label:'Meh'},{key:'ansioso',label:'Ansioso'},
-        {key:'estresado',label:'Estresado'},{key:'triste',label:'Triste'},{key:'muy_feliz',label:'Muy feliz'}
-      ];
-      state.emotions = rows.filter(r=>r.active!==false).map(r=>({key:r.key,label:r.label}));
-      const sel = qs('#lightEmotion');
-      if(sel) sel.innerHTML = state.emotions.map(e=>`<option value="${esc(e.key)}">${esc(e.label)}</option>`).join('');
-    }catch(e){ console.warn(e); }
+      emotions = await window.NT?.lights?.listEmotions?.()   // si tienes servicio
+              || await fetchEmotionsFallback();
+    }catch{ emotions = []; }
   }
 
-  function endOf(type, startISO){
-    const d=new Date(startISO);
-    if(type==='week'){ d.setDate(d.getDate()+6); }
-    else { d.setMonth(d.getMonth()+1); d.setDate(0); }
-    return toISO(d);
+  async function fetchEmotionsFallback(){
+    // Si no tienes servicio expuesto, usa supabase directo si está en window.NT._supa
+    if (!window.NT?._supa) return [];
+    const { data, error } = await window.NT._supa
+      .from('light_emotions')
+      .select('key,label,active')
+      .eq('active', true)
+      .order('label', { ascending:true });
+    if (error) { console.error(error); return []; }
+    return data || [];
   }
 
-  async function renderLights(){
-    const list=qs('#lightsList'), stats=qs('#lightsStats');
-    if(!list||!stats) return;
-    list.innerHTML=`<div class="text-sm opacity-70">Cargando…</div>`;
+  async function render(){
+    const list = qs('#lightsList'); if(!list) return;
+    list.innerHTML = `<div class="text-sm opacity-70">Cargando...</div>`;
+
+    // filtros
+    const tSel = qs('#lightsRangeType');
+    const t = (tSel?.value?.toLowerCase()==='mes' ? 'month' : 'week');
+    const start = qs('#lightsRangeStart')?.value || rangeFrom(t);
+    const dStart = new Date(start);
+    const dEnd = new Date(start);
+    if (t==='week'){ dEnd.setDate(dStart.getDate()+6);}
+    else { dEnd.setMonth(dStart.getMonth()+1); dEnd.setDate(dEnd.getDate()-1); }
+    const from = start, to = dEnd.toISOString().slice(0,10);
+
+    const whoFilter = qs('#lightsWhoFilter')?.value || '';
+
     try{
-      const from= state.startISO;
-      const to  = endOf(state.rangeType, state.startISO);
-      let items = await window.NT.lights.listLights({from,to});
-      if(state.who!=='Todos') items = items.filter(i=>i.who===state.who);
+      let items = await window.NT.lights.listLights({ from, to });
+      if (whoFilter) items = items.filter(i=> i.who===whoFilter);
 
-      // stats
+      // contadores
       const counts = {Rojo:0,'Ámbar':0,Verde:0,Azul:0};
-      items.forEach(i=> counts[i.color]=(counts[i.color]||0)+1);
-      stats.innerHTML = `
-        <div class="gs-card p-3 flex items-center justify-between"><div class="flex items-center gap-2">${colorDot('Rojo')}<span>Rojo</span></div><div class="text-2xl font-semibold">${counts.Rojo||0}</div></div>
-        <div class="gs-card p-3 flex items-center justify-between"><div class="flex items-center gap-2">${colorDot('Ámbar')}<span>Ámbar</span></div><div class="text-2xl font-semibold">${counts['Ámbar']||0}</div></div>
-        <div class="gs-card p-3 flex items-center justify-between"><div class="flex items-center gap-2">${colorDot('Verde')}<span>Verde</span></div><div class="text-2xl font-semibold">${counts.Verde||0}</div></div>
-        <div class="gs-card p-3 flex items-center justify-between"><div class="flex items-center gap-2">${colorDot('Azul')}<span>Azul</span></div><div class="text-2xl font-semibold">${counts.Azul||0}</div></div>
-      `;
+      items.forEach(i => counts[i.color] = (counts[i.color]||0)+1);
+      const statsWrap = qs('#lightsStats');
+      if (statsWrap) {
+        statsWrap.innerHTML = Object.entries(counts).map(([k,v])=>`
+          <div class="gs-card p-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">${colorDot(k)}<span>${k}</span></div>
+            <div class="text-2xl font-semibold">${v}</div>
+          </div>
+        `).join('');
+      }
 
-      if(!items.length){ list.innerHTML=`<div class="text-sm opacity-70">Sin entradas.</div>`; return; }
+      if (!items.length){
+        list.innerHTML = `<div class="text-sm opacity-70">Sin entradas.</div>`;
+        return;
+      }
 
       list.innerHTML = items.map(l=>`
         <div class="gs-card p-4">
@@ -96,102 +253,164 @@
           <div class="font-medium">${esc(l.action)}</div>
           <div class="mt-1 text-xs opacity-80 flex items-center gap-2">
             <span>${opposite(l.who)}</span> ·
-            <span class="inline-flex items-center gap-1">${emoIcon(l.emotion)} <span>${esc(l.emotion)}</span></span>
+            <span>${labelForEmotion(l.emotion)}</span>
           </div>
           ${l.notes?`<div class="mt-2 text-xs opacity-80">${esc(l.notes)}</div>`:''}
           <div class="mt-3 flex items-center gap-2 justify-end">
-            <button class="gs-btn" data-edit="${l.id}" title="Editar">
-              <svg class="icon-sm" viewBox="0 0 24 24" fill="none"><path d="M4 20h4l10-10-4-4L4 16v4Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            <button class="gs-btn" data-edit-light="${l.id}" title="Editar">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M4 20h4l10-10-4-4L4 16v4Z"/>
+              </svg>
             </button>
-            <button class="gs-btn" data-del="${l.id}" title="Borrar">
-              <svg class="icon-sm" viewBox="0 0 24 24" fill="none"><path d="M6 7h12M10 11v6M14 11v6M9 7l1-2h4l1 2M7 7l1 12h8l1-12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            <button class="gs-btn" data-del-light="${l.id}" title="Borrar">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M6 7h12M10 11v6M14 11v6M9 7l1-2h4l1 2M7 7l1 12h8l1-12"/>
+              </svg>
             </button>
           </div>
         </div>
       `).join('');
 
-      qsa('[data-edit]').forEach(b=> b.addEventListener('click',()=>{
-        const itId=b.getAttribute('data-edit'); const it=items.find(x=>x.id===itId); openModal(it);
-      }));
-      qsa('[data-del]').forEach(b=> b.addEventListener('click',async()=>{
-        const id=b.getAttribute('data-del');
-        if(!confirm('¿Eliminar entrada?')) return;
-        await window.NT.lights.deleteLight(id).catch(e=>console.error(e));
-        renderLights();
-      }));
+      qsa('[data-edit-light]').forEach(b=>{
+        b.addEventListener('click', ()=>{
+          const id = b.getAttribute('data-edit-light');
+          const it = items.find(x=>x.id===id);
+          openModal(it);
+        });
+      });
+      qsa('[data-del-light]').forEach(b=>{
+        b.addEventListener('click', async()=>{
+          const id = b.getAttribute('data-del-light');
+          if (!confirm('¿Eliminar entrada?')) return;
+          try{
+            await window.NT.lights.deleteLight(id);
+            toast('Eliminada','success');
+            render();
+          }catch(e){ console.error(e); toast('Error al eliminar','error'); }
+        });
+      });
 
-    }catch(e){ console.error(e); list.innerHTML=`<div class="text-sm text-red-300">Error al cargar.</div>`; }
+    }catch(e){
+      console.error(e);
+      list.innerHTML = `<div class="text-sm text-red-300">Error al cargar</div>`;
+    }
   }
 
-  function attachFilters(){
-    const t=qs('#lightsRangeType'), d=qs('#lightsRangeStart'), w=qs('#lightsWho'), add=qs('#addLightBtn');
-    if(t && !t.__bound){ t.__bound=true; t.addEventListener('change',()=>{ state.rangeType = (t.value==='Mes')?'month':'week'; renderLights(); }); }
-    if(d && !d.__bound){ d.__bound=true; d.value=state.startISO; d.addEventListener('change',()=>{ state.startISO=d.value||state.startISO; renderLights(); }); }
-    if(w && !w.__bound){ w.__bound=true; w.addEventListener('change',()=>{ state.who=w.value; renderLights(); }); }
-    if(add && !add.__bound){ add.__bound=true; add.addEventListener('click',()=> openModal()); }
+  function labelForEmotion(key){
+    if (!key) return '';
+    const row = emotions.find(e=>e.key===key);
+    return row ? row.label : key;
   }
 
-  function openModal(item=null){
-    const m=qs('#lightModal'); if(!m) return;
-    qs('#lightModalTitle').textContent = item ? 'Editar entrada':'Nueva entrada';
-    show(qs('#deleteLightBtn'), !!item);
-    qs('#lightId').value       = item?.id || '';
-    qs('#lightColor').value    = item?.color || 'Verde';
-    qs('#lightWho').value      = item?.who || 'Eddy';
-    qs('#lightEmotion').value  = item?.emotion || (state.emotions[0]?.key || 'feliz');
-    qs('#lightAction').value   = item?.action || '';
-    qs('#lightNotes').value    = item?.notes || '';
-    const inp = qs('#lightDate'); inp.value = item?.light_on || toISO(new Date());
-    m.showModal();
+  function toast(msg, type='info'){
+    const host = qs('#toastHost') || document.body;
+    const el = document.createElement('div');
+    el.className=`gs-card px-4 py-2 text-sm border-l-4 ${type==='error'?'border-red-400':type==='success'?'border-emerald-400':'border-[#C7A740]'}`;
+    el.textContent=msg;
+    host.appendChild(el);
+    setTimeout(()=>el.remove(), 2800);
   }
 
-  async function onSubmitLight(e){
-    e.preventDefault();
-    if (state.savingLight) return;           // ⬅️ anti doble submit
-    state.savingLight = true;
-    try{
-      const payload = {
-        id: qs('#lightId').value || undefined,
-        light_on: qs('#lightDate').value,
-        color: qs('#lightColor').value,
-        who: qs('#lightWho').value,
-        action: (qs('#lightAction').value||'').trim(),
-        emotion: qs('#lightEmotion').value,
-        notes: qs('#lightNotes').value || null
-      };
-      if(!payload.action) { state.savingLight=false; return alert('Acción es obligatoria'); }
-      await window.NT.lights.upsertLight(payload);
-      qs('#lightModal').close();
-      await renderLights();
-    }catch(e){ console.error(e); alert('Error al guardar'); }
-    finally{ state.savingLight = false; }
-  }
-
-  function bindModal(){
-    const m=qs('#lightModal'); if(!m || m.__bound) return;
-    m.__bound=true;
-    qs('#closeLightModal')?.addEventListener('click', ()=> m.close());
-    const f=qs('#lightForm'); if(f && !f.__bound){ f.__bound=true; f.addEventListener('submit', onSubmitLight); }
-    qs('#deleteLightBtn')?.addEventListener('click', async ()=>{
-      const id=qs('#lightId').value; if(!id) return; if(!confirm('¿Eliminar entrada?')) return;
-      await window.NT.lights.deleteLight(id).catch(e=>console.error(e));
-      m.close(); renderLights();
-    });
-  }
-
-  async function init(){
-    // Solo si la vista existe
-    if(!qs('#view-luces')) return;
-    attachFilters();
-    bindModal();
+  // ---------- modal ----------
+  async function openModal(item=null){
     await loadEmotions();
-    await renderLights();
+    const modal = ensureModal();
+
+    // Relleno
+    currentEditId = item?.id || null;
+    qs('#nt-light-del', modal).classList.toggle('hidden-vis', !currentEditId);
+
+    // emociones con label visible
+    const emoSel = qs('#lightEmotion', modal);
+    emoSel.innerHTML = emotions.map(e=>`<option value="${esc(e.key)}">${esc(e.label)}</option>`).join('');
+    // set default
+    emoSel.value = item?.emotion || (emotions[0]?.key || 'feliz');
+
+    qs('#lightColor', modal).value = item?.color || 'Verde';
+    qs('#lightWho', modal).value   = item?.who   || 'Eddy';
+    qs('#lightAction', modal).value= item?.action || '';
+    qs('#lightNotes', modal).value = item?.notes  || '';
+
+    // Fecha + Flatpickr encima del dialog
+    const dateInput = qs('#lightDate', modal);
+    dateInput.value = item?.light_on || new Date().toISOString().slice(0,10);
+    if (fpLight) { try{ fpLight.destroy(); }catch{} fpLight=null; }
+    fpLight = flatpickr(dateInput, {
+      altInput:true, altFormat:"d/m/Y", dateFormat:"Y-m-d",
+      defaultDate: dateInput.value,
+      allowInput:true,
+      appendTo: document.body,   // asegura z-index por encima del dialog
+      static: false,
+      zIndex: 99999
+    });
+
+    // Eventos (limpia previos)
+    qs('#nt-light-close', modal).onclick = ()=> modal.close();
+    qs('#nt-light-del', modal).onclick   = onDeleteLight;
+    qs('#nt-light-save', modal).onclick  = onSaveLight;
+
+    if (!modal.open) modal.showModal();
   }
 
-  function onRoute(){
-    const key=(location.hash||'#/resumen').replace('#/','');
-    if(key==='luces') init();
+  async function onDeleteLight(){
+    if (!currentEditId) return;
+    if (!confirm('¿Eliminar entrada?')) return;
+    try{
+      await window.NT.lights.deleteLight(currentEditId);
+      toast('Eliminada','success');
+      qs('#nt-light-modal').close();
+      render();
+    }catch(e){ console.error(e); toast('Error al eliminar','error'); }
   }
-  window.addEventListener('hashchange', onRoute);
-  document.addEventListener('DOMContentLoaded', onRoute);
+
+  async function onSaveLight(){
+    if (saving) return;
+    saving = true;
+
+    // anti-doble-submit: desactiva botón
+    const btn = qs('#nt-light-save');
+    const modal = qs('#nt-light-modal');
+    btn.disabled = true; btn.textContent = 'Guardando…';
+
+    const payload = {
+      id: currentEditId || undefined,
+      light_on: qs('#lightDate', modal).value,
+      color:    qs('#lightColor', modal).value,
+      who:      qs('#lightWho', modal).value,
+      action:   qs('#lightAction', modal).value.trim(),
+      emotion:  qs('#lightEmotion', modal).value,
+      notes:    qs('#lightNotes', modal).value || null
+    };
+
+    if (!payload.action){
+      toast('Acción es obligatoria', 'error');
+      saving=false; btn.disabled=false; btn.textContent='Guardar';
+      return;
+    }
+
+    try{
+      await window.NT.lights.upsertLight(payload);
+      toast('Guardado','success');
+      modal.close();
+      render();
+    }catch(e){
+      console.error(e);
+      toast('Error al guardar','error');
+    }finally{
+      saving=false; btn.disabled=false; btn.textContent='Guardar';
+    }
+  }
+
+  // ---------- arranque sólo cuando exista la vista ----------
+  const boot = () => {
+    const v = qs('#view-luces');
+    if (!v) return;
+    hooks();
+  };
+
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', boot, { once:true });
+  } else {
+    boot();
+  }
 })();
