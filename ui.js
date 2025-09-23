@@ -31,16 +31,18 @@
   };}
   function highlightNav(){ const key=(location.hash||'#/resumen').replace('#/',''); qsa('#mainNav .nav-link').forEach(a=>{ const h=a.getAttribute('href').replace('#/',''); a.classList.toggle('active', h===key); }); }
   async function showView(name){
-    const v = views();
-    Object.entries(v).forEach(([k,el]) => $$(el, k===name));
-    highlightNav();
-    // Carga por vista
-    if (name==='resumen') window.NT.sections.resumen.render();
-    if (name==='acuerdos') window.NT.sections.acuerdos.render();
-    if (name==='luces') window.NT.sections.luces.init();
-    if (name==='ajustes') { window.NT.sections.ajustes.renderContacts(); window.NT.sections.ajustes.renderPractices(); }
-    if (name==='metas') window.NT.sections.metas.render();
-  }
+  const v = views();
+  Object.entries(v).forEach(([k,el]) => $$(el, k===name));
+  highlightNav();
+
+  // Llama a las secciones SOLO si existen:
+  if (name==='resumen') window.NT.sections.resumen?.render?.();
+  if (name==='acuerdos') window.NT.sections.acuerdos?.render?.();
+  if (name==='luces')    (window.NT.sections.luces?.init?.() ?? window.dispatchEvent(new Event('hashchange')));
+  if (name==='ajustes')  { window.NT.sections.ajustes?.renderContacts?.(); window.NT.sections.ajustes?.renderPractices?.(); }
+  if (name==='metas')    window.NT.sections.metas?.render?.();
+}
+
   function parseRoute(){ if(!location.hash) location.hash='#/resumen'; const key=(location.hash||'#/resumen').replace('#/',''); const v=views(); showView(v[key]?key:'resumen'); }
   window.addEventListener('hashchange', parseRoute);
 
