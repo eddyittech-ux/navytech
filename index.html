@@ -15,23 +15,58 @@
   <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 
-  <style>
-    :root { --glass-bg: rgba(255,255,255,.06); --glass-brd: rgba(255,255,255,.12); }
-    .dark :root { --glass-bg: rgba(0,0,0,.25); --glass-brd: rgba(255,255,255,.08); }
-    .gs-card { background: var(--glass-bg); border: 1px solid var(--glass-brd); border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,.20); }
-    .gs-btn  { background: rgba(199,167,64,.15); border:1px solid rgba(199,167,64,.35); padding:.4rem .7rem; border-radius:12px; }
-    .gs-chip { border:1px solid rgba(199,167,64,.45); border-radius:999px; padding:.1rem .45rem; }
-    .icon    { width:22px;height:22px; }
-    .icon-sm { width:18px;height:18px; }
-    .hidden-vis { display:none !important; }
-    /* Mejor contraste inputs */
-    input, select, textarea {
-      background: rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18); border-radius:10px; padding:.55rem .7rem;
-    }
-    .dark input,.dark select,.dark textarea { background: rgba(0,0,0,.35); border-color: rgba(255,255,255,.12); }
-    /* Nav activo */
-    .nav-link.active { color: #C7A740; font-weight: 600; }
-  </style>
+  <!-- NAVYTECH quick CSS patch v0.5.3 -->
+<style id="nt-quick">
+  /* Tokens suaves (no rompen tu tema) */
+  :root{
+    --nt-bg:#0b1220; --nt-card:#111a2a; --nt-text:#eaf0ff;
+    --nt-border:#243047; --nt-accent:#C7A740;
+  }
+
+  /* Modal y campos bonitos */
+  dialog::backdrop{ background: rgba(0,0,0,.45); }
+  dialog.gs-modal{
+    border:0; border-radius:16px; background:#0f1625; color:#e8edf6;
+    box-shadow: 0 20px 60px rgba(0,0,0,.45);
+    max-width:680px; width:calc(100% - 2rem); padding:18px 20px;
+  }
+  .gs-modal .row{ display:grid; grid-template-columns: 1fr 1fr; gap:16px; }
+  .gs-field{ display:flex; flex-direction:column; gap:6px; }
+  .gs-field label{ font-size:.85rem; opacity:.8; }
+  .gs-input,.gs-select,.gs-textarea{
+    background:#0a1120; color:#e8edf6; border:1px solid var(--nt-border);
+    border-radius:10px; padding:10px 12px; outline:none;
+  }
+  .gs-input:focus,.gs-select:focus,.gs-textarea:focus{
+    border-color:var(--nt-accent); box-shadow:0 0 0 3px rgba(199,167,64,.15);
+  }
+  .gs-textarea{ min-height:110px; resize:vertical; }
+  .gs-actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:14px; }
+  .gs-btn.primary{
+    background:var(--nt-accent); color:#101826; border:0;
+    border-radius:10px; padding:10px 14px; font-weight:600;
+  }
+
+  /* Asegura calendario por encima del modal */
+  .flatpickr-calendar{ z-index: 99999 !important; }
+
+  /* (Opcional) estilos base por si faltan en tu build */
+  .gs-card{
+    background: var(--nt-card); color: var(--nt-text);
+    border:1px solid var(--nt-border); border-radius:14px;
+    box-shadow: 0 10px 24px rgba(0,0,0,.25);
+  }
+  .gs-btn{
+    background:transparent; color:var(--nt-text); cursor:pointer;
+    border:1px solid var(--nt-border); padding:8px 12px; border-radius:10px;
+  }
+  .gs-btn:hover{ border-color:var(--nt-accent); }
+  .gs-chip{
+    display:inline-flex; align-items:center; gap:.4rem;
+    border:1px solid var(--nt-border); padding:.15rem .5rem; border-radius:999px;
+  }
+</style>
+
 </head>
 <body class="h-full bg-slate-900 text-slate-100">
   <!-- Nav -->
@@ -506,23 +541,27 @@
     </form>
   </dialog>
 
-  <!-- Core + secciones -->
-<script type="module" src="app.js"></script>            <!-- cliente supabase + servicios en window.NT -->
+  <!-- ... tu HTML de vistas ... -->
 
-<!-- Secciones (todas como módulos y con la RUTA correcta) -->
-<script type="module" src="./sections/resumen.js"></script>
-<script type="module" src="./sections/acuerdos.js"></script>
-<script type="module" src="./sections/ajustes.js"></script>
-<script type="module" src="./sections/luces.js"></script>   <!-- luces -->
-<script type="module" src="./sections/juegos.js"></script>   <!-- juegos -->
-<script type="module" src="./sections/metas.js"></script>
+<!-- JS: carga ordenada -->
+<script type="module" src="app.js?v=0.5.3"></script>
 
-<!-- Router/tema SIEMPRE al final -->
-<script type="module" src="ui.js"></script>
+<!-- Secciones (una sola vez cada una, con defer) -->
+<script defer src="./sections/luces.js?v=0.5.3"></script>
+<script defer src="./sections/juegos.js?v=0.5.3"></script>
+<script defer src="./sections/resumen.js?v=0.5.3"></script>
+<script defer src="./sections/acuerdos.js?v=0.5.3"></script>
+<script defer src="./sections/ajustes.js?v=0.5.3"></script>
+<script defer src="./sections/metas.js?v=0.5.3"></script>
+
+<!-- UI/router si lo estás usando -->
+<script defer src="ui.js?v=0.5.3"></script>
+
 
   
 </body>
 </html>
+
 
 
 
