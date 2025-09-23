@@ -71,7 +71,11 @@ document.querySelector('#themeToggle')?.addEventListener('click', ()=>{
       const password = qs('#passwordInput').value;
       if (!email || !password) return toast('Completa email y password','error');
       try{ btn.disabled=true; btn.textContent='Entrando…'; const user = await NT.auth.signIn(email, password); toast('Sesión iniciada','success'); await refreshAuthUI(user); }
-      catch(err){ console.error(err); toast(err.message||'Error de login','error'); }
+      catch (err) {
+  console.error('signIn error:', err);
+  (window.NT?.ui?.toast || ((m)=>alert(m)))(err?.message || 'Error de login', 'error');
+}
+
       finally{ btn.disabled=false; btn.textContent='Entrar'; }
     });
   }
