@@ -4,6 +4,20 @@
   const qsa = (s, el=document) => [...el.querySelectorAll(s)];
   const $$  = (el, show=true) => el && el.classList.toggle('hidden-vis', !show);
 
+  // ✅ Toast disponible SIEMPRE (scope local + window.NT.ui)
+  function toast(msg, type='info'){
+    const el = document.createElement('div');
+    el.role = 'status';
+    el.className = [
+      'fixed right-4 bottom-4 z-[1000]',
+      'px-4 py-2 rounded-md shadow-lg text-sm text-white',
+      type==='error' ? 'bg-red-600' : type==='success' ? 'bg-emerald-600' : 'bg-amber-600'
+    ].join(' ');
+    el.textContent = msg;
+    document.body.appendChild(el);
+    setTimeout(()=> el.remove(), 2500);
+  }
+
   // ---- Tema (dark/light)
   const THEME_KEY = 'nt-theme';
   const iconSun  = () => `<circle cx="12" cy="12" r="4" stroke-width="1.6"></circle>
@@ -35,7 +49,6 @@
 
   // ---- Router / views
   function views() {
-    // asegúrate de que esta función exista en tu archivo; si ya existe en otro lado, elimina este stub
     return {
       resumen:  qs('#view-resumen'),
       acuerdos: qs('#view-acuerdos'),
@@ -58,7 +71,6 @@
     Object.entries(v).forEach(([k,el]) => $$(el, k===name));
     highlightNav();
 
-    // Llama a las secciones SOLO si existen:
     if (name==='resumen') window.NT.sections.resumen?.render?.();
     if (name==='acuerdos') window.NT.sections.acuerdos?.render?.();
     if (name==='luces')    (window.NT.sections.luces?.init?.() ?? window.dispatchEvent(new Event('hashchange')));
@@ -116,20 +128,6 @@
     });
   }
 
-  // ---- ✅ NUEVO: toast reutilizable (sin dependencias externas)
-  function toast(msg, type='info'){
-    const el = document.createElement('div');
-    el.role = 'status';
-    el.className = [
-      'fixed right-4 bottom-4 z-[1000]',
-      'px-4 py-2 rounded-md shadow-lg text-sm text-white',
-      type==='error' ? 'bg-red-600' : type==='success' ? 'bg-emerald-600' : 'bg-amber-600'
-    ].join(' ');
-    el.textContent = msg;
-    document.body.appendChild(el);
-    setTimeout(()=> el.remove(), 2500);
-  }
-
   // ---- Init
   window.addEventListener('DOMContentLoaded', async () => {
     initTheme();
@@ -139,7 +137,7 @@
     refreshAuthUI(u);
   });
 
-  // ---- Export para otros módulos
+  // ---- Export para otros módulos (incluye toast)
   window.NT = window.NT || {};
   window.NT.ui = { qs, qsa, $$, parseRoute, toast };
 })();
