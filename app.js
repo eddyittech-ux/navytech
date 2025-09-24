@@ -1,6 +1,10 @@
 // app.js v0.6 — cliente Supabase + servicios con alias compatibles
 
 window.NT = window.NT || {};
+NT.sections = NT.sections || {}; // evita set de propiedad sobre undefined
+
+
+window.NT = window.NT || {};
 NT.sections = NT.sections || {};   // 👈 evita "Cannot set properties of undefined (setting 'resumen')"
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
