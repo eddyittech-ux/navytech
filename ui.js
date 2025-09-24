@@ -67,16 +67,17 @@
   }
 
   async function showView(name){
-    const v = views();
-    Object.entries(v).forEach(([k,el]) => $$(el, k===name));
-    highlightNav();
+    // Antes (peligroso si NT.sections no existe aún):
+// if (name==='resumen') NT.sections.resumen?.render?.();
 
-    if (name==='resumen') window.NT.sections.resumen?.render?.();
-    if (name==='acuerdos') window.NT.sections.acuerdos?.render?.();
-    if (name==='luces')    (window.NT.sections.luces?.init?.() ?? window.dispatchEvent(new Event('hashchange')));
-    if (name==='ajustes')  { window.NT.sections.ajustes?.renderContacts?.(); window.NT.sections.ajustes?.renderPractices?.(); }
-    if (name==='metas')    window.NT.sections.metas?.render?.();
-  }
+// Después (seguro):
+const S = window.NT?.sections;
+if (name==='resumen') S?.resumen?.render?.();
+if (name==='acuerdos') S?.acuerdos?.render?.();
+if (name==='luces')    (S?.luces?.init?.() ?? window.dispatchEvent(new Event('hashchange')));
+if (name==='ajustes')  { S?.ajustes?.renderContacts?.(); S?.ajustes?.renderPractices?.(); }
+if (name==='metas')    S?.metas?.render?.();
+ }
 
   function parseRoute(){
     if(!location.hash) location.hash='#/resumen';
@@ -141,3 +142,9 @@
   window.NT = window.NT || {};
   window.NT.ui = { qs, qsa, $$, parseRoute, toast };
 })();
+
+// AGREGA esto al final del archivo (después de exportar NT.ui está bien):
+window.addEventListener('load', () => {
+  // solo navegar cuando ya todo lo defer se evaluó
+  if (location.hash) parseRoute();
+});
